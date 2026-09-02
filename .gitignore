@@ -6,4 +6,6 @@ backend/app/scrapers/__pycache__/
 *.pyc
 backend/uvicorn_out.log
 backend/uvicorn_err.log
+backend/cloudflared.log
+backend/tools/
 .DS_Store
