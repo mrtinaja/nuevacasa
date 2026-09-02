@@ -1,10 +1,15 @@
-// En localhost usa el backend local (para desarrollar mas rapido); en
-// cualquier otro dominio (ej. el deploy en Netlify) usa el backend real
-// en Render, asi funciona para cualquiera que abra la pagina.
+// En localhost usa el backend local directo (para desarrollar mas rapido).
+// En cualquier otro dominio (ej. el deploy en Netlify) usa el tunel de
+// Cloudflare hacia ese mismo backend local -- IMPORTANTE: la PC tiene que
+// estar prendida con el backend + `cloudflared tunnel --url
+// http://localhost:8000` corriendo, y esta URL cambia cada vez que se
+// reinicia ese tunel (es un "quick tunnel" sin cuenta, no tiene hostname
+// fijo). Si deja de andar, hay que actualizar esta URL con la nueva y
+// resubir el frontend a Netlify.
 const ES_LOCAL = location.hostname === "localhost" || location.hostname === "127.0.0.1";
 const API_URL = ES_LOCAL
   ? "http://localhost:8000/api/search"
-  : "https://nuevacasa.onrender.com/api/search";
+  : "https://same-comm-treatment-fails.trycloudflare.com/api/search";
 
 // Dataset curado de ubicaciones (no es exhaustivo). El slug de "Zona" es lo
 // que efectivamente se manda al backend como filtros.ubicacion, y hoy solo
