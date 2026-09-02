@@ -1,0 +1,9 @@
+backend/.venv/
+backend/__pycache__/
+backend/app/__pycache__/
+backend/app/scrapers/__pycache__/
+**/__pycache__/
+*.pyc
+backend/uvicorn_out.log
+backend/uvicorn_err.log
+.DS_Store

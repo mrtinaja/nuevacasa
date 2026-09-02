@@ -1,0 +1,134 @@
+import json
+import re
+
+import requests
+
+from app.models import Filtros, Propiedad
+from app.scrapers.base import Scraper, ScraperBloqueado
+
+
+def _parse_float(valor):
+    try:
+        return float(valor)
+    except (TypeError, ValueError):
+        return None
+
+
+def _parse_int(valor):
+    try:
+        return int(float(valor))
+    except (TypeError, ValueError):
+        return None
+
+
+class MercadoLibreScraper(Scraper):
+    """
+    La API oficial (/sites/MLA/search) quedo descartada: incluso con un
+    token OAuth valido (client_credentials), MercadoLibre la bloquea con
+    403 "PA_UNAUTHORIZED_RESULT_FROM_POLICIES" para apps no certificadas
+    -- es una restriccion de plataforma, no algo que se arregle con
+    codigo (confirmado en vivo con credenciales reales).
+
+    En cambio, la pagina publica de MercadoLibre Inmuebles
+    (inmuebles.mercadolibre.com.ar) trae los resultados en un bloque
+    JSON-LD estandar (schema.org RealEstateListing) embebido en el HTML,
+    sin login ni token. Mismo patron que ZonaProp: leer el JSON embebido
+    en vez de parsear tarjetas HTML.
+
+    Limitaciones conocidas:
+    - El JSON-LD trae menos campos que ZonaProp: no hay dormitorios,
+      banos, superficie ni antiguedad, solo ambientes (numberOfRooms).
+      Esos filtros simplemente no se aplican aca.
+    - El tipo "ph" no se pudo confirmar: no aparecio como categoria
+      propia en la muestra que revisamos. Se arma como "phs" siguiendo
+      el mismo patron que "departamentos"/"casas", pero queda pendiente
+      verificarlo.
+    - Solo pagina 1 (no se reprodujo la paginacion todavia).
+    """
+
+    name = "mercadolibre"
+    BASE_URL = "https://inmuebles.mercadolibre.com.ar"
+    HEADERS = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+            "(KHTML, like Gecko) Chrome/124.0 Safari/537.36"
+        ),
+        "Accept-Language": "es-AR,es;q=0.9",
+    }
+    TIPO_SLUGS = {
+        "departamento": "departamentos",
+        "casa": "casas",
+        "ph": "phs",
+        "local": "locales",
+    }
+    OPERACION_SLUGS = {"venta": "venta", "alquiler": "alquiler"}
+
+    def _build_url(self, filtros: Filtros) -> str:
+        tipo = self.TIPO_SLUGS.get(filtros.tipo_propiedad.value, f"{filtros.tipo_propiedad.value}s")
+        operacion = self.OPERACION_SLUGS.get(filtros.operacion.value, filtros.operacion.value)
+        ubicacion = filtros.ubicacion.strip("/").lower() or "capital-federal"
+        return f"{self.BASE_URL}/{tipo}/{operacion}/{ubicacion}/"
+
+    def _extraer_listings(self, html: str) -> list[dict]:
+        match = re.search(r'<script type="application/ld\+json"[^>]*>(.*?)</script>', html, re.S)
+        if match is None:
+            return []
+        try:
+            data = json.loads(match.group(1))
+        except json.JSONDecodeError:
+            return []
+        return [item for item in data.get("@graph", []) if item.get("@type") == "RealEstateListing"]
+
+    def search(self, filtros: Filtros) -> list[Propiedad]:
+        url = self._build_url(filtros)
+        try:
+            resp = requests.get(url, headers=self.HEADERS, timeout=15)
+        except requests.RequestException as exc:
+            raise ScraperBloqueado(f"error de red contactando MercadoLibre: {exc}") from exc
+
+        if resp.status_code in (403, 202, 429):
+            raise ScraperBloqueado(
+                f"MercadoLibre devolvio HTTP {resp.status_code} "
+                "(probable bloqueo anti-bot, reintentar mas tarde)"
+            )
+        if resp.status_code != 200:
+            raise ScraperBloqueado(f"MercadoLibre devolvio HTTP {resp.status_code} inesperado")
+
+        listings = self._extraer_listings(resp.text)
+        resultados: list[Propiedad] = []
+
+        for item in listings:
+            offer = item.get("offers") or {}
+            precio = _parse_float(offer.get("price"))
+            moneda = offer.get("priceCurrency")
+            ambientes = _parse_int(item.get("numberOfRooms"))
+
+            address = item.get("address") or {}
+            barrio = address.get("addressLocality")
+
+            if filtros.moneda and moneda and moneda != filtros.moneda.value:
+                continue
+            if filtros.precio_min and precio is not None and precio < filtros.precio_min:
+                continue
+            if filtros.precio_max and precio is not None and precio > filtros.precio_max:
+                continue
+            if filtros.ambientes_min and ambientes is not None and ambientes < filtros.ambientes_min:
+                continue
+            if filtros.ambientes_max and ambientes is not None and ambientes > filtros.ambientes_max:
+                continue
+
+            resultados.append(
+                Propiedad(
+                    portal=self.name,
+                    external_id=offer.get("url", item.get("name", "")),
+                    titulo=item.get("name") or "Sin titulo",
+                    precio=precio,
+                    moneda=moneda,
+                    barrio=barrio,
+                    ambientes=ambientes,
+                    url=offer.get("url", ""),
+                    imagen_url=item.get("image"),
+                )
+            )
+
+        return resultados
