@@ -94,6 +94,12 @@ class MercadoLibreScraper(Scraper):
         if resp.status_code != 200:
             raise ScraperBloqueado(f"MercadoLibre devolvio HTTP {resp.status_code} inesperado")
 
+        if "account-verification" in resp.url or "suspicious-traffic" in resp.text:
+            raise ScraperBloqueado(
+                "MercadoLibre redirigio a una pagina de verificacion de trafico "
+                "sospechoso (bloqueo anti-bot con HTTP 200, sin ld+json real)"
+            )
+
         listings = self._extraer_listings(resp.text)
         resultados: list[Propiedad] = []
 
