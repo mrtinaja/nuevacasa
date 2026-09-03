@@ -272,11 +272,16 @@ input[type="number"] { -moz-appearance: textfield; }
   letter-spacing: normal;
 }
 
-.campo-checkbox {
-  align-self: center;
+.campo-label-spacer {
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  visibility: hidden;
 }
 
-.campo-checkbox label {
+.campo-checkbox .switch-label {
+  min-height: 2.4rem;
   display: flex;
   align-items: center;
   gap: 0.55rem;
