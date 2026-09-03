@@ -23,23 +23,39 @@ const UBICACIONES = {
   "Capital Federal": {
     todas: "capital-federal",
     todasLabel: "Todos los barrios",
+    // Los 48 barrios oficiales de CABA + "Barrio Norte" (no es oficial,
+    // pero es un slug real que confirmamos que usa ZonaProp y es de los
+    // mas buscados en venta/alquiler).
     zonas: [
-      "Almagro", "Balvanera", "Barracas", "Barrio Norte", "Belgrano",
-      "Boedo", "Caballito", "Colegiales", "Constitucion", "Flores",
-      "Floresta", "La Boca", "Monserrat", "Monte Castro", "Nuñez",
-      "Palermo", "Parque Chacabuco", "Parque Patricios", "Puerto Madero",
-      "Recoleta", "Retiro", "Saavedra", "San Cristobal", "San Nicolas",
-      "San Telmo", "Villa Crespo", "Villa del Parque", "Villa Devoto",
-      "Villa Lugano", "Villa Luro", "Villa Urquiza",
+      "Agronomia", "Almagro", "Balvanera", "Barracas", "Barrio Norte",
+      "Belgrano", "Boedo", "Caballito", "Chacarita", "Coghlan",
+      "Colegiales", "Constitucion", "Flores", "Floresta", "La Boca",
+      "La Paternal", "Liniers", "Mataderos", "Monserrat", "Monte Castro",
+      "Nueva Pompeya", "Nuñez", "Palermo", "Parque Avellaneda",
+      "Parque Chacabuco", "Parque Chas", "Parque Patricios",
+      "Puerto Madero", "Recoleta", "Retiro", "Saavedra", "San Cristobal",
+      "San Nicolas", "San Telmo", "Velez Sarsfield", "Versalles",
+      "Villa Crespo", "Villa del Parque", "Villa Devoto",
+      "Villa General Mitre", "Villa Lugano", "Villa Luro",
+      "Villa Ortuzar", "Villa Pueyrredon", "Villa Real", "Villa Riachuelo",
+      "Villa Santa Rita", "Villa Soldati", "Villa Urquiza",
     ],
   },
   "Buenos Aires": {
     todas: "buenos-aires",
     todasLabel: "Toda la provincia",
-    zonas: [
-      "La Plata", "Mar del Plata", "San Isidro", "Vicente Lopez", "Tigre",
-      "Quilmes", "Pilar", "Nordelta", "Avellaneda", "Lanus", "Moron",
-    ],
+    // Partidos del GBA agrupados por zona cardinal (asi se buscan en la
+    // vida real), mas un grupo aparte para ciudades importantes que no
+    // son "GBA" en sentido estricto. El value que se manda sigue siendo
+    // el slug real del partido -- la agrupacion es solo visual
+    // (<optgroup>), no inventamos un slug "-zona-x" que no funciona en
+    // ningun portal.
+    grupos: {
+      "Zona Norte": ["San Isidro", "Vicente Lopez", "Tigre", "San Fernando", "Pilar", "Nordelta"],
+      "Zona Oeste": ["Moron", "Ituzaingo", "Merlo", "Moreno"],
+      "Zona Sur": ["Quilmes", "Avellaneda", "Lanus", "Lomas de Zamora", "La Plata"],
+      "Otras ciudades": ["Mar del Plata"],
+    },
   },
   "Cordoba": {
     todas: "cordoba",
@@ -102,19 +118,32 @@ function poblarProvincias() {
   poblarZonas(provinciaSelect.value);
 }
 
+function opcionZona(zona) {
+  const slug = slugify(zona);
+  return `<option value="${slug}">${escapeHtml(zona)}</option>`;
+}
+
 function poblarZonas(nombreProvincia) {
   const provincia = UBICACIONES[nombreProvincia];
   if (!provincia) {
     ubicacionSelect.innerHTML = "";
     return;
   }
-  const opciones = [`<option value="${provincia.todas}">${escapeHtml(provincia.todasLabel)}</option>`].concat(
-    provincia.zonas.map((zona) => {
-      const slug = slugify(zona);
-      return `<option value="${slug}">${escapeHtml(zona)}</option>`;
-    })
-  );
-  ubicacionSelect.innerHTML = opciones.join("");
+  const todas = `<option value="${provincia.todas}">${escapeHtml(provincia.todasLabel)}</option>`;
+
+  if (provincia.grupos) {
+    const optgroups = Object.entries(provincia.grupos)
+      .map(([nombreGrupo, zonas]) => {
+        const opciones = zonas.map(opcionZona).join("");
+        return `<optgroup label="${escapeHtml(nombreGrupo)}">${opciones}</optgroup>`;
+      })
+      .join("");
+    ubicacionSelect.innerHTML = todas + optgroups;
+    return;
+  }
+
+  const opciones = provincia.zonas.map(opcionZona).join("");
+  ubicacionSelect.innerHTML = todas + opciones;
 }
 
 provinciaSelect.addEventListener("change", () => poblarZonas(provinciaSelect.value));

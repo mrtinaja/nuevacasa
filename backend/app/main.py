@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.models import Filtros, SearchResponse
 from app.orchestrator import SCRAPERS, buscar
 
-app = FastAPI(title="compraTuCasa API")
+app = FastAPI(title="NuevaCasa API")
 
 app.add_middleware(
     CORSMiddleware,

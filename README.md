@@ -1,4 +1,4 @@
-# compraTuCasa
+# NuevaCasa
 
 Buscador agregado de propiedades. Prototipo local: un backend en FastAPI
 orquesta un scraper por portal, normaliza los resultados a un esquema
@@ -81,11 +81,17 @@ no dispara nuevos requests a los portales al cambiar de pagina.
 
 El frontend arma el filtro `ubicacion` con dos selects en cascada
 (Provincia -> Zona/Barrio, dataset curado en `frontend/app.js`,
-`UBICACIONES`). El segundo select trae barrios reales para Capital
-Federal y partidos/departamentos reales para las demas provincias
-(no es exhaustivo, son los mas conocidos de cada una). El slug que se
-manda es el nombre pelado, sin prefijo de provincia (ej. `palermo`,
-`la-plata`), confirmado en vivo:
+`UBICACIONES`). Capital Federal trae los 48 barrios oficiales completos
+mas "Barrio Norte" (no es oficial, pero es un slug real que usa
+ZonaProp y es de los mas buscados). Buenos Aires agrupa sus partidos en
+`<optgroup>` por punto cardinal (Zona Norte/Oeste/Sur) mas un grupo
+aparte para ciudades importantes que no son GBA en sentido estricto --
+la agrupacion es solo visual, cada opcion sigue mandando el slug real
+del partido, no un "-zona-x" inventado que no funciona en ningun
+portal. Las demas provincias listan los partidos/departamentos mas
+conocidos de cada una (no exhaustivo). El slug que se manda es el
+nombre pelado, sin prefijo de provincia (ej. `palermo`, `la-plata`),
+confirmado en vivo:
 
 - **ZonaProp**: confirmado, barrio pelado funciona (usa esos mismos
   slugs en sus propios links de navegacion).

@@ -6,13 +6,13 @@ powershell -NoProfile -Command "Get-CimInstance Win32_Process -Filter \"Name='py
 echo.
 echo Iniciando backend...
 cd /d "%~dp0backend"
-start "compraTuCasa - backend" /min .venv\Scripts\python.exe -m uvicorn app.main:app --port 8000
+start "NuevaCasa - backend" /min .venv\Scripts\python.exe -m uvicorn app.main:app --port 8000
 
 timeout /t 3 /nobreak >nul
 
 echo Iniciando tunel de Cloudflare...
 del cloudflared.log >nul 2>&1
-start "compraTuCasa - tunel" cmd /k tools\cloudflared.exe tunnel --url http://localhost:8000 ^> cloudflared.log 2^>^&1
+start "NuevaCasa - tunel" cmd /k tools\cloudflared.exe tunnel --url http://localhost:8000 ^> cloudflared.log 2^>^&1
 
 timeout /t 6 /nobreak >nul
 
