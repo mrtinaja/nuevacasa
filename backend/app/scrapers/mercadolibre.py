@@ -8,6 +8,7 @@ from app.geo import distancia_general_paz_km
 from app.models import Filtros, Propiedad
 from app.scrapers.base import Scraper, ScraperBloqueado
 from app.ubicaciones_geo import centroide
+from app.zonas_cardinales import partidos_de_zona
 
 
 def _parse_float(valor):
@@ -76,10 +77,10 @@ class MercadoLibreScraper(Scraper):
     }
     OPERACION_SLUGS = {"venta": "venta", "alquiler": "alquiler"}
 
-    def _build_url(self, filtros: Filtros) -> str:
+    def _build_url(self, filtros: Filtros, ubicacion: str | None = None) -> str:
         tipo = self.TIPO_SLUGS.get(filtros.tipo_propiedad.value, f"{filtros.tipo_propiedad.value}s")
         operacion = self.OPERACION_SLUGS.get(filtros.operacion.value, filtros.operacion.value)
-        ubicacion = filtros.ubicacion.strip("/").lower() or "capital-federal"
+        ubicacion = (ubicacion if ubicacion is not None else filtros.ubicacion).strip("/").lower() or "capital-federal"
         return f"{self.BASE_URL}/{tipo}/{operacion}/{ubicacion}/"
 
     def _extraer_listings(self, html: str) -> list[dict]:
@@ -93,7 +94,25 @@ class MercadoLibreScraper(Scraper):
         return [item for item in data.get("@graph", []) if item.get("@type") == "RealEstateListing"]
 
     def search(self, filtros: Filtros) -> list[Propiedad]:
-        url = self._build_url(filtros)
+        partidos = partidos_de_zona(filtros.ubicacion)
+        if not partidos:
+            return self._buscar_una_ubicacion(filtros, filtros.ubicacion)
+
+        resultados: list[Propiedad] = []
+        errores: list[str] = []
+        for partido in partidos:
+            try:
+                resultados.extend(self._buscar_una_ubicacion(filtros, partido))
+            except ScraperBloqueado as exc:
+                errores.append(str(exc))
+        if not resultados and errores:
+            raise ScraperBloqueado(
+                f"MercadoLibre bloqueo los {len(errores)}/{len(partidos)} partidos de la zona: {errores[0]}"
+            )
+        return resultados
+
+    def _buscar_una_ubicacion(self, filtros: Filtros, ubicacion: str) -> list[Propiedad]:
+        url = self._build_url(filtros, ubicacion)
         try:
             resp = requests.get(url, headers=self.HEADERS, timeout=15)
         except requests.RequestException as exc:
@@ -120,7 +139,7 @@ class MercadoLibreScraper(Scraper):
         # centroide de la zona buscada (mismo valor para todos los avisos
         # de esta busqueda -- no es tan preciso como ZonaProp/RE-MAX, que
         # traen lat/lon real por aviso).
-        centro = centroide(filtros.ubicacion)
+        centro = centroide(ubicacion)
         distancia_gral_paz = distancia_general_paz_km(*centro) if centro else None
 
         for item in listings:

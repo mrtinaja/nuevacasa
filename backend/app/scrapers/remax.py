@@ -1,4 +1,3 @@
-import re
 import unicodedata
 
 import requests
@@ -6,6 +5,7 @@ import requests
 from app.geo import distancia_general_paz_km
 from app.models import Filtros, Propiedad
 from app.scrapers.base import Scraper, ScraperBloqueado
+from app.zonas_cardinales import partidos_de_zona
 
 
 def _parse_float(valor):
@@ -46,9 +46,6 @@ def _normalizar(texto: str) -> str:
 
 
 # Texto legible por provincia/ciudad para matchear contra geoLabel/displayAddress.
-# El sufijo "-zona-<cardinal>" (ver frontend UBICACIONES) se ignora aca: no hay
-# forma confiable de mapear cada partido del GBA a su zona sin una lista curada
-# mucho mas grande, asi que se filtra por la provincia entera nomas.
 UBICACION_DISPLAY = {
     "capital-federal": "Capital Federal",
     "buenos-aires": "Buenos Aires",
@@ -56,7 +53,6 @@ UBICACION_DISPLAY = {
     "santa-fe": "Santa Fe",
     "mendoza": "Mendoza",
 }
-_ZONA_SUFIJO = re.compile(r"-zona-(norte|sur|este|oeste)$")
 
 
 class RemaxScraper(Scraper):
@@ -77,9 +73,11 @@ class RemaxScraper(Scraper):
     pruebas (buscando "Capital Federal" aparecian avisos de Mendoza), asi
     que en vez de replicarlo se arma un filtro de texto client-side
     contra `geoLabel` + `displayAddress` de cada resultado (ver
-    UBICACION_DISPLAY). No distingue Zona Norte/Sur/Este/Oeste dentro de
-    Buenos Aires -- filtra por la provincia entera, no hay una lista
-    curada de que partido cae en cada zona.
+    UBICACION_DISPLAY). Zona cardinal (zona-norte/oeste/sur): como ya se
+    trae TODO el pais en un solo pedido y se filtra en memoria, no hace
+    falta pedir de nuevo por cada partido como en ZonaProp/Argenprop/
+    MercadoLibre -- alcanza con matchear contra cualquiera de los
+    partidos de esa zona (ver zonas_cardinales.py).
     """
 
     name = "remax"
@@ -107,11 +105,18 @@ class RemaxScraper(Scraper):
         carpeta, entidad, archivo = partes
         return f"{self.IMG_BASE}/{carpeta}/{entidad}/360x200/{archivo}.webp"
 
-    def _ubicacion_buscada(self, filtros: Filtros) -> str:
+    def _ubicaciones_buscadas(self, filtros: Filtros) -> list[str]:
+        """Lista de textos normalizados contra los que matchear -- mas de
+        uno solo cuando es una zona cardinal (OR entre todos los partidos
+        de la zona); en cualquier otro caso, una lista de un solo texto."""
         slug = (filtros.ubicacion or "").strip("/").lower()
-        slug_base = _ZONA_SUFIJO.sub("", slug)
-        texto = UBICACION_DISPLAY.get(slug_base, slug_base.replace("-", " "))
-        return _normalizar(texto)
+        if not slug:
+            return []
+        partidos = partidos_de_zona(slug)
+        if partidos:
+            return [_normalizar(UBICACION_DISPLAY.get(p, p.replace("-", " "))) for p in partidos]
+        texto = UBICACION_DISPLAY.get(slug, slug.replace("-", " "))
+        return [_normalizar(texto)]
 
     def search(self, filtros: Filtros) -> list[Propiedad]:
         operation_id = self.OPERACION_IDS.get(filtros.operacion.value, 1)
@@ -124,7 +129,7 @@ class RemaxScraper(Scraper):
             "sort": "-createdAt",
             "in": f"operationId:{operation_id}",
         }
-        ubicacion_buscada = self._ubicacion_buscada(filtros)
+        ubicaciones_buscadas = self._ubicaciones_buscadas(filtros)
 
         try:
             resp = requests.get(self.API_URL, params=params, headers=self.HEADERS, timeout=15)
@@ -150,9 +155,9 @@ class RemaxScraper(Scraper):
             if _categoria(item.get("type", {}).get("value")) != filtros.tipo_propiedad.value:
                 continue
 
-            if ubicacion_buscada:
+            if ubicaciones_buscadas:
                 texto_item = _normalizar(f"{item.get('geoLabel', '')} {item.get('displayAddress', '')}")
-                if ubicacion_buscada not in texto_item:
+                if not any(u in texto_item for u in ubicaciones_buscadas):
                     continue
 
             precio = _parse_float(item.get("price"))

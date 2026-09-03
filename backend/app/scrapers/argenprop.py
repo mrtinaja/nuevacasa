@@ -8,6 +8,7 @@ from app.geo import distancia_general_paz_km
 from app.models import Filtros, Propiedad
 from app.scrapers.base import Scraper, ScraperBloqueado
 from app.ubicaciones_geo import centroide
+from app.zonas_cardinales import partidos_de_zona
 
 
 def _parse_int(valor):
@@ -89,8 +90,8 @@ class ArgenpropScraper(Scraper):
             pass  # si falla el calentamiento seguimos igual con el request real
         self._calentado = True
 
-    def _build_url(self, filtros: Filtros) -> str:
-        ubicacion = filtros.ubicacion.strip("/").lower() or "capital-federal"
+    def _build_url(self, filtros: Filtros, ubicacion: str | None = None) -> str:
+        ubicacion = (ubicacion if ubicacion is not None else filtros.ubicacion).strip("/").lower() or "capital-federal"
         return (
             f"{self.BASE_URL}/{filtros.tipo_propiedad.value}-"
             f"{filtros.operacion.value}-{ubicacion}"
@@ -144,8 +145,26 @@ class ArgenpropScraper(Scraper):
         )
 
     def search(self, filtros: Filtros) -> list[Propiedad]:
+        partidos = partidos_de_zona(filtros.ubicacion)
+        if not partidos:
+            return self._buscar_una_ubicacion(filtros, filtros.ubicacion)
+
+        resultados: list[Propiedad] = []
+        errores: list[str] = []
+        for partido in partidos:
+            try:
+                resultados.extend(self._buscar_una_ubicacion(filtros, partido))
+            except ScraperBloqueado as exc:
+                errores.append(str(exc))
+        if not resultados and errores:
+            raise ScraperBloqueado(
+                f"Argenprop bloqueo los {len(errores)}/{len(partidos)} partidos de la zona: {errores[0]}"
+            )
+        return resultados
+
+    def _buscar_una_ubicacion(self, filtros: Filtros, ubicacion: str) -> list[Propiedad]:
         self._calentar_sesion()
-        url = self._build_url(filtros)
+        url = self._build_url(filtros, ubicacion)
         resp = self._obtener(url)
 
         if resp.status_code != 200:
@@ -156,7 +175,7 @@ class ArgenpropScraper(Scraper):
 
         # Sin coordenadas por aviso: se aproxima con el centroide de la
         # zona buscada (ver comentario igual en mercadolibre.py).
-        centro = centroide(filtros.ubicacion)
+        centro = centroide(ubicacion)
         distancia_gral_paz = distancia_general_paz_km(*centro) if centro else None
 
         for item in soup.select("div.listing__item"):

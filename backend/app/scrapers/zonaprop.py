@@ -7,6 +7,7 @@ from bs4 import BeautifulSoup
 from app.geo import distancia_general_paz_km
 from app.models import Filtros, Propiedad
 from app.scrapers.base import Scraper, ScraperBloqueado
+from app.zonas_cardinales import partidos_de_zona
 
 
 def _parse_int(valor):
@@ -132,7 +133,7 @@ class ZonapropScraper(Scraper):
         "local": "locales-comerciales",
     }
 
-    def _build_url(self, filtros: Filtros) -> tuple[str, str | None]:
+    def _build_url(self, filtros: Filtros, ubicacion: str | None = None) -> tuple[str, str | None]:
         """Devuelve (url, amenity_aplicada_en_url). Confirmamos en vivo que
         ZonaProp soporta sufijos "-con-patio", "-con-terraza", "-con-jardin",
         "-mas-de-1-garage" (cochera), "-con-apto-credito" (venta) y
@@ -143,9 +144,13 @@ class ZonapropScraper(Scraper):
         patio > terraza > jardin > cochera > apto credito/mascotas); si
         piden mas de una, las demas se intentan filtrar despues con los
         datos de mainFeatures (ver _tiene_feature, que hoy suele venir
-        vacio para estas amenities en la pagina de listado)."""
+        vacio para estas amenities en la pagina de listado).
+
+        `ubicacion` permite pisar filtros.ubicacion -- lo usa la busqueda
+        por zona cardinal (ver search()) para pedir un partido puntual a
+        la vez sin tocar el resto del objeto Filtros."""
         tipo = self.TIPO_SLUGS.get(filtros.tipo_propiedad.value, f"{filtros.tipo_propiedad.value}s")
-        ubicacion = filtros.ubicacion.strip("/").lower() or "capital-federal"
+        ubicacion = (ubicacion if ubicacion is not None else filtros.ubicacion).strip("/").lower() or "capital-federal"
         url = f"{self.BASE_URL}/{tipo}-{filtros.operacion.value}-{ubicacion}"
 
         amenity_en_url = None
@@ -171,7 +176,30 @@ class ZonapropScraper(Scraper):
         return url + ".html", amenity_en_url
 
     def search(self, filtros: Filtros) -> list[Propiedad]:
-        url, amenity_en_url = self._build_url(filtros)
+        partidos = partidos_de_zona(filtros.ubicacion)
+        if not partidos:
+            return self._buscar_una_ubicacion(filtros, filtros.ubicacion)
+
+        # Zona cardinal: no hay slug de portal que agrupe varios partidos
+        # en un solo pedido, asi que se pide cada uno y se juntan los
+        # resultados. Si algunos partidos vienen bloqueados pero otros no,
+        # se devuelve lo que se pudo traer -- solo se levanta ScraperBloqueado
+        # si TODOS fallaron (bloqueo sistemico, no puntual).
+        resultados: list[Propiedad] = []
+        errores: list[str] = []
+        for partido in partidos:
+            try:
+                resultados.extend(self._buscar_una_ubicacion(filtros, partido))
+            except ScraperBloqueado as exc:
+                errores.append(str(exc))
+        if not resultados and errores:
+            raise ScraperBloqueado(
+                f"ZonaProp bloqueo los {len(errores)}/{len(partidos)} partidos de la zona: {errores[0]}"
+            )
+        return resultados
+
+    def _buscar_una_ubicacion(self, filtros: Filtros, ubicacion: str) -> list[Propiedad]:
+        url, amenity_en_url = self._build_url(filtros, ubicacion)
         try:
             resp = requests.get(url, headers=self.HEADERS, timeout=15)
         except requests.RequestException as exc:

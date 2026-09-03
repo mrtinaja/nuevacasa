@@ -136,8 +136,16 @@ function poblarZonas(nombreProvincia) {
   if (provincia.grupos) {
     const optgroups = Object.entries(provincia.grupos)
       .map(([nombreGrupo, zonas]) => {
+        // "Toda la Zona X" busca en TODOS los partidos de esa zona a la
+        // vez (el backend hace el fan-out) -- solo tiene sentido para
+        // las zonas cardinales de verdad, no para el grupo "Otras
+        // ciudades" (que no es una zona geografica, es un cajon de
+        // sastre de ciudades importantes sueltas).
+        const opcionToda = nombreGrupo.startsWith("Zona ")
+          ? `<option value="${slugify(nombreGrupo)}">Toda la ${escapeHtml(nombreGrupo)}</option>`
+          : "";
         const opciones = zonas.map(opcionZona).join("");
-        return `<optgroup label="${escapeHtml(nombreGrupo)}">${opciones}</optgroup>`;
+        return `<optgroup label="${escapeHtml(nombreGrupo)}">${opcionToda}${opciones}</optgroup>`;
       })
       .join("");
     ubicacionSelect.innerHTML = todas + optgroups;

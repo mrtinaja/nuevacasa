@@ -24,7 +24,7 @@ mucho entre portales, no sigue el patron de los demas:
 | Argenprop     | Funcionando            | HTML scraping. Tiene anti-bot: si se hacen muchos requests seguidos devuelve 403/202. Mitigado (no eliminado) con sesion persistente + cookies + headers mas realistas + 1 reintento con backoff -- ver docstring de `ArgenpropScraper`. Solo trae la primera pagina de resultados (paginacion no implementada, es via AJAX/POST a `/listing/searchbylisting`, todavia no reproducida). |
 | MercadoLibre  | Funcionando            | No usa la API oficial (ver seccion abajo). Scraping de la pagina publica inmuebles.mercadolibre.com.ar, que trae un bloque JSON-LD (`schema.org/RealEstateListing`) sin login ni token. Menos campos que ZonaProp (solo ambientes, no dormitorios/banos/superficie/antiguedad). |
 | ZonaProp      | Funcionando            | No es HTML scraping puro: la pagina trae un JSON completo embebido (`window.__PRELOADED_STATE__`) con precio, ambientes, dormitorios, banos, superficie, antiguedad, ubicacion e imagenes -- mas rico que Argenprop. Mismo riesgo de anti-bot (403/202/429) y misma limitacion de solo pagina 1. |
-| RE/MAX        | Funcionando            | App Angular con SSR: se encontro su API publica real (`api-ar.redremax.com`) leyendo el TransferState (`ng-state`) embebido en el HTML. Sin anti-bot detectado. Operacion (venta/alquiler) es server-side; tipo de propiedad y ubicacion se filtran client-side (texto contra `geoLabel`/`displayAddress`, confirmado: 17/17 resultados reales en Capital Federal). No distingue Zona Norte/Sur/Este/Oeste, cae a la provincia entera. |
+| RE/MAX        | Funcionando            | App Angular con SSR: se encontro su API publica real (`api-ar.redremax.com`) leyendo el TransferState (`ng-state`) embebido en el HTML. Sin anti-bot detectado. Operacion (venta/alquiler) es server-side; tipo de propiedad y ubicacion se filtran client-side (texto contra `geoLabel`/`displayAddress`, confirmado: 17/17 resultados reales en Capital Federal). Zona Norte/Oeste/Sur si distingue (matchea contra cualquier partido de la zona). |
 
 ## Portales descartados
 
@@ -85,11 +85,15 @@ El frontend arma el filtro `ubicacion` con dos selects en cascada
 mas "Barrio Norte" (no es oficial, pero es un slug real que usa
 ZonaProp y es de los mas buscados). Buenos Aires agrupa sus partidos en
 `<optgroup>` por punto cardinal (Zona Norte/Oeste/Sur) mas un grupo
-aparte para ciudades importantes que no son GBA en sentido estricto --
-la agrupacion es solo visual, cada opcion sigue mandando el slug real
-del partido, no un "-zona-x" inventado que no funciona en ningun
-portal. Las demas provincias listan los partidos/departamentos mas
-conocidos de cada una (no exhaustivo). El slug que se manda es el
+aparte para ciudades importantes que no son GBA en sentido estricto.
+Cada partido sigue mandando su propio slug real (no un "-zona-x"
+inventado que no funciona en ningun portal), pero ademas cada grupo
+cardinal tiene una opcion propia ("Toda la Zona Norte", etc,
+value=`zona-norte`/`zona-oeste`/`zona-sur`) que busca en TODOS los
+partidos de esa zona a la vez -- ver `backend/app/zonas_cardinales.py`
+para la lista real de partidos por zona (sincronizada a mano con
+`frontend/app.js`). Las demas provincias listan los partidos/departamentos
+mas conocidos de cada una (no exhaustivo). El slug que se manda es el
 nombre pelado, sin prefijo de provincia (ej. `palermo`, `la-plata`),
 confirmado en vivo:
 
@@ -105,6 +109,21 @@ confirmado en vivo:
 - **Argenprop**: mismo patron de slug pelado que los demas, pero no se
   pudo confirmar en vivo (viene bloqueado por el anti-bot desde hace
   rato). Presumiblemente funciona igual, sin verificar.
+
+**Busqueda por zona cardinal** (`zona-norte`/`zona-oeste`/`zona-sur`):
+no hay un slug de portal que agrupe varios partidos en un solo pedido,
+asi que cada portal lo resuelve distinto:
+- **ZonaProp, MercadoLibre y Argenprop**: hacen un pedido HTTP por cada
+  partido de la zona y juntan los resultados (confirmado en vivo con
+  ZonaProp: 180 avisos de Zona Norte = 30 x 6 partidos, en ~8
+  segundos). Mas pedidos por busqueda significa mas tiempo de espera y
+  mas exposicion al anti-bot que buscar un solo partido -- si un
+  partido puntual viene bloqueado pero los demas no, se devuelve lo
+  que se pudo traer (solo se corta todo si TODOS los partidos de la
+  zona fallan).
+- **RE/MAX**: gratis en terminos de pedidos extra -- ya trae todo el
+  pais en un unico pedido y filtra en memoria, asi que sumar mas
+  partidos al matching de texto no cuesta nada mas.
 
 ## Filtros
 
@@ -280,10 +299,4 @@ scraping directo.
 ## Roadmap
 
 1. Paginacion real en Argenprop y ZonaProp (hoy solo pagina 1).
-2. Filtro de ubicacion real para Argenprop/ZonaProp/MercadoLibre (RE/MAX
-   ya lo tiene -- ver seccion Ubicacion).
-3. Zona Norte/Sur/Este/Oeste con lista curada de partidos reales, en vez
-   de caer a "toda la provincia" (RE/MAX) o un slug sin verificar
-   (Argenprop/ZonaProp).
-4. Deduplicacion de propiedades repetidas entre portales.
-5. Cache de resultados para no re-pegarle a los portales en cada busqueda.
+2. Deduplicacion de propiedades repetidas entre portales.
