@@ -9,7 +9,7 @@
 const ES_LOCAL = location.hostname === "localhost" || location.hostname === "127.0.0.1";
 const API_URL = ES_LOCAL
   ? "http://localhost:8000/api/search"
-  : "https://overnight-leeds-mile-remedies.trycloudflare.com/api/search";
+  : "https://associates-remembered-care-alerts.trycloudflare.com/api/search";
 
 // Dataset curado de ubicaciones (no es exhaustivo). El slug de "Zona" es lo
 // que efectivamente se manda al backend como filtros.ubicacion, y hoy solo
