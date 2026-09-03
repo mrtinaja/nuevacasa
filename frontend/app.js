@@ -1,15 +1,17 @@
 // En localhost usa el backend local directo (para desarrollar mas rapido).
 // En cualquier otro dominio (ej. el deploy en Netlify) usa el tunel de
-// Cloudflare hacia ese mismo backend local -- IMPORTANTE: la PC tiene que
-// estar prendida con el backend + `cloudflared tunnel --url
-// http://localhost:8000` corriendo, y esta URL cambia cada vez que se
-// reinicia ese tunel (es un "quick tunnel" sin cuenta, no tiene hostname
-// fijo). Si deja de andar, hay que actualizar esta URL con la nueva y
-// resubir el frontend a Netlify.
+// ngrok hacia ese mismo backend local -- IMPORTANTE: la PC tiene que estar
+// prendida con el backend + `ngrok http 8000 --url
+// https://celtic-lapel-smirk.ngrok-free.dev` corriendo (o el script
+// `iniciar_backend.bat`, que ademas arranca solo al prender la PC via el
+// Programador de Tareas). A diferencia del tunel de Cloudflare que se
+// usaba antes, este es un dominio ESTATICO reservado en la cuenta de
+// ngrok -- no cambia entre reinicios, no hace falta tocar esta URL nunca
+// mas.
 const ES_LOCAL = location.hostname === "localhost" || location.hostname === "127.0.0.1";
 const API_URL = ES_LOCAL
   ? "http://localhost:8000/api/search"
-  : "https://associates-remembered-care-alerts.trycloudflare.com/api/search";
+  : "https://celtic-lapel-smirk.ngrok-free.dev/api/search";
 
 // Dataset curado de ubicaciones (no es exhaustivo, hay muchos mas barrios
 // y partidos/departamentos reales que los listados aca). El slug de "Zona"
@@ -208,7 +210,14 @@ form.addEventListener("submit", async (ev) => {
   try {
     const resp = await fetch(API_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      // ngrok-skip-browser-warning: sin este header, el plan gratis de
+      // ngrok le muestra a cualquier pedido con cara de navegador una
+      // pagina de advertencia HTML en vez de la respuesta real -- rompe
+      // el fetch porque espera JSON. No hace falta en ES_LOCAL (va
+      // directo a localhost, sin tunel de por medio).
+      headers: ES_LOCAL
+        ? { "Content-Type": "application/json" }
+        : { "Content-Type": "application/json", "ngrok-skip-browser-warning": "true" },
       body: JSON.stringify(filtros),
     });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);

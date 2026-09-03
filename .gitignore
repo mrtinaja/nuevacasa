@@ -7,6 +7,7 @@ backend/app/scrapers/__pycache__/
 backend/uvicorn_out.log
 backend/uvicorn_err.log
 backend/cloudflared.log
+backend/ngrok.log
 backend/tools/
 backend/data/
 .DS_Store
