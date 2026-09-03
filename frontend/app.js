@@ -137,6 +137,7 @@ form.addEventListener("submit", async (ev) => {
     con_jardin: formData.get("con_jardin") === "on" ? true : null,
     apto_credito: operacionSelect.value !== "alquiler" && filtroEspecialInput.checked ? true : null,
     acepta_mascotas: operacionSelect.value === "alquiler" && filtroEspecialInput.checked ? true : null,
+    publicado_max_dias: numeroOrNull(formData.get("publicado_max_dias")),
     orden: formData.get("orden") || "relevancia",
   };
 
@@ -250,6 +251,9 @@ function renderTarjetas(propiedades) {
         p.jardin ? `<span>Jardin</span>` : "",
         p.apto_credito ? `<span>Apto credito</span>` : "",
         p.acepta_mascotas ? `<span>Acepta mascotas</span>` : "",
+        p.dias_desde_publicacion !== null && p.dias_desde_publicacion !== undefined
+          ? `<span>${p.dias_desde_publicacion === 0 ? "Publicado hoy" : "Hace " + p.dias_desde_publicacion + " dias"}</span>`
+          : "",
       ]
         .filter(Boolean)
         .join("");

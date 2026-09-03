@@ -1,4 +1,5 @@
 import json
+from datetime import date, datetime
 
 import requests
 from bs4 import BeautifulSoup
@@ -19,6 +20,20 @@ def _parse_float(valor):
         return float(valor)
     except (TypeError, ValueError):
         return None
+
+
+def _dias_desde(fecha_iso: str | None) -> int | None:
+    """`modified_date` es la ultima modificacion del aviso, no
+    estrictamente la fecha de publicacion original -- no hay otro campo
+    mas confiable en los datos que trae la pagina de listado, asi que se
+    usa como proxy de "actividad reciente"."""
+    if not fecha_iso:
+        return None
+    try:
+        fecha = datetime.fromisoformat(fecha_iso).date()
+    except ValueError:
+        return None
+    return (date.today() - fecha).days
 
 
 def _extraer_preloaded_state(html: str) -> dict | None:
@@ -206,6 +221,7 @@ class ZonapropScraper(Scraper):
             jardin = _tiene_feature(features, "jardin", "jardín")
             apto_credito = _tiene_feature(features, "apto credito", "apto crédito")
             acepta_mascotas = _tiene_feature(features, "mascota")
+            dias_publicado = _dias_desde(p.get("modified_date"))
 
             location = (p.get("postingLocation") or {}).get("location")
             barrio = _ubicar_barrio(location)
@@ -255,6 +271,8 @@ class ZonapropScraper(Scraper):
                 continue
             if filtros.acepta_mascotas and amenity_en_url != "acepta_mascotas" and not acepta_mascotas:
                 continue
+            if filtros.publicado_max_dias is not None and dias_publicado is not None and dias_publicado > filtros.publicado_max_dias:
+                continue
 
             resultados.append(
                 Propiedad(
@@ -277,6 +295,7 @@ class ZonapropScraper(Scraper):
                     jardin=jardin,
                     apto_credito=apto_credito,
                     acepta_mascotas=acepta_mascotas,
+                    dias_desde_publicacion=dias_publicado,
                     url=self.BASE_URL + href if href.startswith("/") else href,
                     imagen_url=imagen_url,
                 )

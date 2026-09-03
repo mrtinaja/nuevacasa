@@ -149,8 +149,8 @@ body {
 }
 
 .filtros-primarios {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  display: flex;
+  flex-wrap: wrap;
   gap: 1rem;
   align-items: end;
 }
@@ -162,13 +162,6 @@ body {
   align-items: end;
 }
 
-@media (max-width: 860px) {
-  .filtros-primarios { grid-template-columns: repeat(2, 1fr); }
-}
-
-@media (max-width: 480px) {
-  .filtros-primarios { grid-template-columns: 1fr; }
-}
 
 .campo {
   display: flex;

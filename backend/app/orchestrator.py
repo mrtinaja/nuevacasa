@@ -79,8 +79,12 @@ def buscar(filtros: Filtros) -> SearchResponse:
         propiedades.sort(key=lambda p: (p.precio is None, p.precio))
     elif filtros.orden == "precio_desc":
         propiedades.sort(key=lambda p: (p.precio is None, -(p.precio or 0)))
-    # "relevancia" y "mas_recientes" quedan en el orden en que respondio cada
-    # portal -- todavia no tenemos fecha de publicacion para ordenar por eso.
+    elif filtros.orden == "mas_recientes":
+        # Solo ZonaProp y MercadoLibre traen fecha real; Argenprop y
+        # RE/MAX quedan sin ese dato (None) y van al final, en el orden
+        # en que respondio cada portal.
+        propiedades.sort(key=lambda p: (p.dias_desde_publicacion is None, p.dias_desde_publicacion))
+    # "relevancia" queda en el orden en que respondio cada portal.
 
     resultados_portal.sort(key=lambda r: r.portal)
 

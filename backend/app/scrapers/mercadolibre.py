@@ -1,5 +1,6 @@
 import json
 import re
+from datetime import date
 
 import requests
 
@@ -19,6 +20,16 @@ def _parse_int(valor):
         return int(float(valor))
     except (TypeError, ValueError):
         return None
+
+
+def _dias_desde(fecha_iso: str | None) -> int | None:
+    if not fecha_iso:
+        return None
+    try:
+        fecha = date.fromisoformat(fecha_iso[:10])
+    except ValueError:
+        return None
+    return (date.today() - fecha).days
 
 
 class MercadoLibreScraper(Scraper):
@@ -111,6 +122,7 @@ class MercadoLibreScraper(Scraper):
 
             address = item.get("address") or {}
             barrio = address.get("addressLocality")
+            dias_publicado = _dias_desde(item.get("datePosted"))
 
             if filtros.moneda and moneda and moneda != filtros.moneda.value:
                 continue
@@ -122,6 +134,8 @@ class MercadoLibreScraper(Scraper):
                 continue
             if filtros.ambientes_max and ambientes is not None and ambientes > filtros.ambientes_max:
                 continue
+            if filtros.publicado_max_dias is not None and dias_publicado is not None and dias_publicado > filtros.publicado_max_dias:
+                continue
 
             resultados.append(
                 Propiedad(
@@ -132,6 +146,7 @@ class MercadoLibreScraper(Scraper):
                     moneda=moneda,
                     barrio=barrio,
                     ambientes=ambientes,
+                    dias_desde_publicacion=dias_publicado,
                     url=offer.get("url", ""),
                     imagen_url=item.get("image"),
                 )

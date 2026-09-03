@@ -117,6 +117,17 @@ aviso, seria mucho mas lento):
   ahora, salvo lo que ZonaProp ya filtra via URL). Reproducir el endpoint
   POST interno de Argenprop para filtrar server-side ahi tambien queda
   pendiente (ver Roadmap).
+- **`publicado_max_dias`** ("Publicado" en la fila principal del
+  frontend): solo ZonaProp (`modified_date`, en rigor la ultima
+  modificacion del aviso, no la fecha de alta original -- se usa como
+  proxy) y MercadoLibre (`datePosted`, este si es la fecha real de
+  publicacion) traen una fecha confiable. Argenprop no tiene ese dato
+  en la tarjeta de listado y RE/MAX no lo expone en su API (aunque ya
+  pide los avisos ordenados por `-createdAt`, asi que su orden interno
+  ya es "mas recientes primero" aunque no se pueda filtrar por umbral
+  de dias) -- en esos dos el filtro no descarta nada. El orden "Mas
+  recientes" usa el mismo dato: los avisos sin fecha quedan al final,
+  en el orden en que respondio el portal.
 
 ## Como correr
 
