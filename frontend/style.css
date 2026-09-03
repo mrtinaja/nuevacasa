@@ -272,6 +272,10 @@ input[type="number"] { -moz-appearance: textfield; }
   letter-spacing: normal;
 }
 
+.campo-checkbox {
+  align-self: center;
+}
+
 .campo-checkbox label {
   display: flex;
   align-items: center;
