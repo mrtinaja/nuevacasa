@@ -77,6 +77,8 @@ class Propiedad(BaseModel):
     dormitorios: Optional[int] = None
     banos: Optional[int] = None
     superficie_m2: Optional[float] = None
+    superficie_cubierta_m2: Optional[float] = None
+    superficie_descubierta_m2: Optional[float] = None
     antiguedad_anios: Optional[int] = None
     cochera: Optional[bool] = None
     patio: Optional[bool] = None

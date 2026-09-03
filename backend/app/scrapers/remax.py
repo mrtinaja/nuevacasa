@@ -161,9 +161,14 @@ class RemaxScraper(Scraper):
             ambientes = _parse_int(item.get("totalRooms"))
             dormitorios = _parse_int(item.get("bedrooms"))
             banos = _parse_int(item.get("bathrooms"))
-            superficie = _parse_float(item.get("dimensionCovered")) or _parse_float(
-                item.get("dimensionTotalBuilt")
-            )
+            superficie_cubierta = _parse_float(item.get("dimensionCovered")) or None
+            superficie = superficie_cubierta or _parse_float(item.get("dimensionTotalBuilt"))
+            # dimensionLand es el tamano del terreno (relevante en casas/
+            # lotes), no el equivalente a "superficie descubierta" del
+            # sentido cubierta/descubierta argentino (patio, balcon, etc):
+            # incluye jardin, playon, todo lo que no este construido.
+            # Restarla de la cubierta daria un numero que no representa
+            # lo mismo que en ZonaProp, asi que no se expone aca.
 
             # GeoJSON Point: coordinates viene como [longitud, latitud].
             coords = (item.get("location") or {}).get("coordinates") or []
@@ -214,6 +219,7 @@ class RemaxScraper(Scraper):
                     dormitorios=dormitorios,
                     banos=banos,
                     superficie_m2=superficie,
+                    superficie_cubierta_m2=superficie_cubierta,
                     distancia_general_paz_km=distancia_gral_paz,
                     url=f"{self.SITE_URL}/listings/{slug}",
                     imagen_url=self._imagen_url(item),

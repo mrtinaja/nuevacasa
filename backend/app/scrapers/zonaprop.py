@@ -213,9 +213,17 @@ class ZonapropScraper(Scraper):
             dormitorios = _parse_int(_feature_valor(features, "CFT2"))
             banos = _parse_int(_feature_valor(features, "CFT3"))
             antiguedad = _parse_int(_feature_valor(features, "CFT5"))
-            superficie = _parse_float(_feature_valor(features, "CFT101")) or _parse_float(
-                _feature_valor(features, "CFT100")
-            )
+            # CFT101 = "Superficie cubierta", CFT100 = "Superficie total"
+            # (confirmado en vivo con las labels que trae mainFeatures).
+            # La descubierta se calcula por diferencia -- solo si ambas
+            # estan y el total es mayor a la cubierta (si son iguales no
+            # hay parte descubierta que valga la pena mostrar).
+            superficie_cubierta = _parse_float(_feature_valor(features, "CFT101"))
+            superficie_total = _parse_float(_feature_valor(features, "CFT100"))
+            superficie = superficie_cubierta or superficie_total
+            superficie_descubierta = None
+            if superficie_cubierta is not None and superficie_total is not None and superficie_total > superficie_cubierta:
+                superficie_descubierta = round(superficie_total - superficie_cubierta, 2)
             cochera = _tiene_feature(features, "cochera")
             patio = _tiene_feature(features, "patio")
             terraza = _tiene_feature(features, "terraza")
@@ -301,6 +309,8 @@ class ZonapropScraper(Scraper):
                     dormitorios=dormitorios,
                     banos=banos,
                     superficie_m2=superficie,
+                    superficie_cubierta_m2=superficie_cubierta,
+                    superficie_descubierta_m2=superficie_descubierta,
                     antiguedad_anios=antiguedad,
                     cochera=cochera,
                     patio=patio,

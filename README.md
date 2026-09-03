@@ -133,6 +133,18 @@ aviso, seria mucho mas lento):
   ahora, salvo lo que ZonaProp ya filtra via URL). Reproducir el endpoint
   POST interno de Argenprop para filtrar server-side ahi tambien queda
   pendiente (ver Roadmap).
+- **Superficie cubierta/descubierta**: las tarjetas muestran ambas por
+  separado cuando el portal las expone asi. **ZonaProp** trae
+  `CFT101` ("Superficie cubierta") y `CFT100` ("Superficie total")
+  confirmadas por su propia label -- la descubierta es la resta de las
+  dos (en depto suele ser balcon/terraza, en casa puede ser el patio o
+  jardin entero, por eso el numero varia mucho segun el tipo). **RE/MAX**
+  solo expone `dimensionCovered` (cubierta) de forma confiable;
+  `dimensionLand` es el tamano del terreno, un concepto distinto al de
+  "descubierta" en el sentido cubierta/descubierta argentino, asi que
+  no se usa para no mostrar un numero enganoso. Argenprop y
+  MercadoLibre no separan esto en absoluto -- ahi la tarjeta muestra
+  solo el metraje generico, sin la etiqueta "cub."/"descub.".
 - **`publicado_max_dias`** ("Publicado" en la fila principal del
   frontend): solo ZonaProp (`modified_date`, en rigor la ultima
   modificacion del aviso, no la fecha de alta original -- se usa como

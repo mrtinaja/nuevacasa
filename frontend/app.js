@@ -305,13 +305,32 @@ function renderPaginacion(total, totalPaginas) {
   });
 }
 
+function pillsSuperficie(p) {
+  // Cubierta + descubierta solo cuando el portal realmente expone las
+  // dos por separado (hoy: ZonaProp). Si solo hay cubierta (RE/MAX) o
+  // solo el total generico (Argenprop), se muestra nada mas eso.
+  if (p.superficie_cubierta_m2 && p.superficie_descubierta_m2) {
+    return [
+      `<span>${p.superficie_cubierta_m2} m&sup2; cub.</span>`,
+      `<span>${p.superficie_descubierta_m2} m&sup2; descub.</span>`,
+    ];
+  }
+  if (p.superficie_cubierta_m2) {
+    return [`<span>${p.superficie_cubierta_m2} m&sup2; cub.</span>`];
+  }
+  if (p.superficie_m2) {
+    return [`<span>${p.superficie_m2} m&sup2;</span>`];
+  }
+  return [];
+}
+
 function renderTarjetas(propiedades) {
   resultadosEl.innerHTML = propiedades
     .map((p, i) => {
       const retraso = Math.min(i, 10) * 40;
       const features = [
         p.ambientes ? `<span>${p.ambientes} amb.</span>` : "",
-        p.superficie_m2 ? `<span>${p.superficie_m2} m&sup2;</span>` : "",
+        ...pillsSuperficie(p),
         p.antiguedad_anios !== null && p.antiguedad_anios !== undefined
           ? `<span>${p.antiguedad_anios === 0 ? "A estrenar" : p.antiguedad_anios + " años"}</span>`
           : "",
