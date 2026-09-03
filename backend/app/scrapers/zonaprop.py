@@ -4,6 +4,7 @@ from datetime import date, datetime
 import requests
 from bs4 import BeautifulSoup
 
+from app.geo import distancia_general_paz_km
 from app.models import Filtros, Propiedad
 from app.scrapers.base import Scraper, ScraperBloqueado
 
@@ -223,9 +224,15 @@ class ZonapropScraper(Scraper):
             acepta_mascotas = _tiene_feature(features, "mascota")
             dias_publicado = _dias_desde(p.get("modified_date"))
 
-            location = (p.get("postingLocation") or {}).get("location")
+            posting_location = p.get("postingLocation") or {}
+            location = posting_location.get("location")
             barrio = _ubicar_barrio(location)
-            direccion = ((p.get("postingLocation") or {}).get("address") or {}).get("name")
+            direccion = (posting_location.get("address") or {}).get("name")
+
+            geoloc = (posting_location.get("postingGeolocation") or {}).get("geolocation") or {}
+            lat = _parse_float(geoloc.get("latitude"))
+            lon = _parse_float(geoloc.get("longitude"))
+            distancia_gral_paz = distancia_general_paz_km(lat, lon)
 
             imagen_url = None
             pics = (p.get("visiblePictures") or {}).get("pictures") or []
@@ -273,6 +280,12 @@ class ZonapropScraper(Scraper):
                 continue
             if filtros.publicado_max_dias is not None and dias_publicado is not None and dias_publicado > filtros.publicado_max_dias:
                 continue
+            if (
+                filtros.distancia_general_paz_max_km is not None
+                and distancia_gral_paz is not None
+                and distancia_gral_paz > filtros.distancia_general_paz_max_km
+            ):
+                continue
 
             resultados.append(
                 Propiedad(
@@ -296,6 +309,7 @@ class ZonapropScraper(Scraper):
                     apto_credito=apto_credito,
                     acepta_mascotas=acepta_mascotas,
                     dias_desde_publicacion=dias_publicado,
+                    distancia_general_paz_km=distancia_gral_paz,
                     url=self.BASE_URL + href if href.startswith("/") else href,
                     imagen_url=imagen_url,
                 )

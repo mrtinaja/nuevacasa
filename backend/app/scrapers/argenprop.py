@@ -4,8 +4,10 @@ import time
 import requests
 from bs4 import BeautifulSoup
 
+from app.geo import distancia_general_paz_km
 from app.models import Filtros, Propiedad
 from app.scrapers.base import Scraper, ScraperBloqueado
+from app.ubicaciones_geo import centroide
 
 
 def _parse_int(valor):
@@ -152,6 +154,11 @@ class ArgenpropScraper(Scraper):
         soup = BeautifulSoup(resp.text, "html.parser")
         resultados: list[Propiedad] = []
 
+        # Sin coordenadas por aviso: se aproxima con el centroide de la
+        # zona buscada (ver comentario igual en mercadolibre.py).
+        centro = centroide(filtros.ubicacion)
+        distancia_gral_paz = distancia_general_paz_km(*centro) if centro else None
+
         for item in soup.select("div.listing__item"):
             a = item.select_one("a.card")
             if a is None:
@@ -210,6 +217,12 @@ class ArgenpropScraper(Scraper):
                 continue
             if filtros.expensas_max and expensas is not None and expensas > filtros.expensas_max:
                 continue
+            if (
+                filtros.distancia_general_paz_max_km is not None
+                and distancia_gral_paz is not None
+                and distancia_gral_paz > filtros.distancia_general_paz_max_km
+            ):
+                continue
 
             resultados.append(
                 Propiedad(
@@ -225,6 +238,8 @@ class ArgenpropScraper(Scraper):
                     dormitorios=dormitorios,
                     superficie_m2=superficie,
                     antiguedad_anios=antiguedad,
+                    distancia_general_paz_km=distancia_gral_paz,
+                    distancia_general_paz_aprox=True,
                     url=self.BASE_URL + href if href.startswith("/") else href,
                     imagen_url=imagen_url,
                 )

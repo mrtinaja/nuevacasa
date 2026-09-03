@@ -3,6 +3,7 @@ import unicodedata
 
 import requests
 
+from app.geo import distancia_general_paz_km
 from app.models import Filtros, Propiedad
 from app.scrapers.base import Scraper, ScraperBloqueado
 
@@ -164,6 +165,12 @@ class RemaxScraper(Scraper):
                 item.get("dimensionTotalBuilt")
             )
 
+            # GeoJSON Point: coordinates viene como [longitud, latitud].
+            coords = (item.get("location") or {}).get("coordinates") or []
+            lon = _parse_float(coords[0]) if len(coords) == 2 else None
+            lat = _parse_float(coords[1]) if len(coords) == 2 else None
+            distancia_gral_paz = distancia_general_paz_km(lat, lon)
+
             if filtros.moneda and moneda and moneda != filtros.moneda.value:
                 continue
             if filtros.precio_min and precio is not None and precio < filtros.precio_min:
@@ -184,6 +191,12 @@ class RemaxScraper(Scraper):
                 continue
             if filtros.expensas_max and expensas is not None and expensas > filtros.expensas_max:
                 continue
+            if (
+                filtros.distancia_general_paz_max_km is not None
+                and distancia_gral_paz is not None
+                and distancia_gral_paz > filtros.distancia_general_paz_max_km
+            ):
+                continue
 
             slug = item.get("slug", "")
 
@@ -201,6 +214,7 @@ class RemaxScraper(Scraper):
                     dormitorios=dormitorios,
                     banos=banos,
                     superficie_m2=superficie,
+                    distancia_general_paz_km=distancia_gral_paz,
                     url=f"{self.SITE_URL}/listings/{slug}",
                     imagen_url=self._imagen_url(item),
                 )

@@ -198,6 +198,7 @@ form.addEventListener("submit", async (ev) => {
     apto_credito: operacionSelect.value !== "alquiler" && filtroEspecialInput.checked ? true : null,
     acepta_mascotas: operacionSelect.value === "alquiler" && filtroEspecialInput.checked ? true : null,
     publicado_max_dias: numeroOrNull(formData.get("publicado_max_dias")),
+    distancia_general_paz_max_km: numeroOrNull(formData.get("distancia_general_paz_max_km")),
     orden: formData.get("orden") || "relevancia",
   };
 
@@ -313,6 +314,9 @@ function renderTarjetas(propiedades) {
         p.acepta_mascotas ? `<span>Acepta mascotas</span>` : "",
         p.dias_desde_publicacion !== null && p.dias_desde_publicacion !== undefined
           ? `<span>${p.dias_desde_publicacion === 0 ? "Publicado hoy" : "Hace " + p.dias_desde_publicacion + " dias"}</span>`
+          : "",
+        p.distancia_general_paz_km !== null && p.distancia_general_paz_km !== undefined
+          ? `<span title="${p.distancia_general_paz_aprox ? "Aproximado por barrio, no por aviso puntual" : "Distancia real del aviso"}">${p.distancia_general_paz_aprox ? "~" : ""}${p.distancia_general_paz_km.toFixed(1)} km de Gral. Paz</span>`
           : "",
       ]
         .filter(Boolean)

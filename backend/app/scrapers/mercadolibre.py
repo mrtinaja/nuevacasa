@@ -4,8 +4,10 @@ from datetime import date
 
 import requests
 
+from app.geo import distancia_general_paz_km
 from app.models import Filtros, Propiedad
 from app.scrapers.base import Scraper, ScraperBloqueado
+from app.ubicaciones_geo import centroide
 
 
 def _parse_float(valor):
@@ -114,6 +116,13 @@ class MercadoLibreScraper(Scraper):
         listings = self._extraer_listings(resp.text)
         resultados: list[Propiedad] = []
 
+        # No hay coordenadas por aviso en el JSON-LD: se aproxima con el
+        # centroide de la zona buscada (mismo valor para todos los avisos
+        # de esta busqueda -- no es tan preciso como ZonaProp/RE-MAX, que
+        # traen lat/lon real por aviso).
+        centro = centroide(filtros.ubicacion)
+        distancia_gral_paz = distancia_general_paz_km(*centro) if centro else None
+
         for item in listings:
             offer = item.get("offers") or {}
             precio = _parse_float(offer.get("price"))
@@ -136,6 +145,12 @@ class MercadoLibreScraper(Scraper):
                 continue
             if filtros.publicado_max_dias is not None and dias_publicado is not None and dias_publicado > filtros.publicado_max_dias:
                 continue
+            if (
+                filtros.distancia_general_paz_max_km is not None
+                and distancia_gral_paz is not None
+                and distancia_gral_paz > filtros.distancia_general_paz_max_km
+            ):
+                continue
 
             resultados.append(
                 Propiedad(
@@ -147,6 +162,8 @@ class MercadoLibreScraper(Scraper):
                     barrio=barrio,
                     ambientes=ambientes,
                     dias_desde_publicacion=dias_publicado,
+                    distancia_general_paz_km=distancia_gral_paz,
+                    distancia_general_paz_aprox=True,
                     url=offer.get("url", ""),
                     imagen_url=item.get("image"),
                 )

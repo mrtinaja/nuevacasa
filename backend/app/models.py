@@ -58,6 +58,7 @@ class Filtros(BaseModel):
     expensas_max: Optional[float] = None
 
     publicado_max_dias: Optional[int] = None  # 1, 7, 30... solo se aplica donde hay fecha real
+    distancia_general_paz_max_km: Optional[float] = None  # solo se aplica donde hay lat/lon real
 
     orden: Orden = Orden.relevancia
     portales: Optional[list[str]] = None  # None = todos los habilitados
@@ -84,6 +85,8 @@ class Propiedad(BaseModel):
     apto_credito: Optional[bool] = None
     acepta_mascotas: Optional[bool] = None
     dias_desde_publicacion: Optional[int] = None
+    distancia_general_paz_km: Optional[float] = None
+    distancia_general_paz_aprox: bool = False  # True = centroide del barrio, no del aviso puntual
     url: str
     imagen_url: Optional[str] = None
 

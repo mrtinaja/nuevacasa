@@ -144,6 +144,22 @@ aviso, seria mucho mas lento):
   de dias) -- en esos dos el filtro no descarta nada. El orden "Mas
   recientes" usa el mismo dato: los avisos sin fecha quedan al final,
   en el orden en que respondio el portal.
+- **`distancia_general_paz_max_km`** ("Distancia max a Gral. Paz (km)"
+  en "+ Filtros"): distancia minima real desde el aviso hasta la traza
+  de la Av. General Paz (nube de ~250 puntos sacada en vivo de
+  OpenStreetMap/Overpass, `backend/app/geo.py`, no inventada a mano).
+  - **ZonaProp** y **RE/MAX** traen coordenadas reales por aviso
+    (`postingLocation.postingGeolocation` y `location.coordinates`
+    respectivamente, confirmado en vivo) -- la distancia es exacta.
+  - **MercadoLibre** y **Argenprop** no traen coordenadas por aviso (el
+    JSON-LD de MercadoLibre no incluye `geo`; el HTML de Argenprop no
+    tiene lat/lon en ningun atributo). Para estos dos se aproxima con
+    el centroide de la zona buscada (`backend/app/ubicaciones_geo.py`,
+    geocodificado una sola vez con Nominatim/OpenStreetMap para cada
+    barrio/partido del dataset curado del frontend -- no en cada
+    busqueda). El campo `distancia_general_paz_aprox` en la respuesta
+    marca esta diferencia; el frontend lo muestra con un `~` adelante.
+  - Como siempre, dato faltante no descarta el aviso.
 
 ## Como correr
 
