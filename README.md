@@ -161,6 +161,31 @@ aviso, seria mucho mas lento):
     marca esta diferencia; el frontend lo muestra con un `~` adelante.
   - Como siempre, dato faltante no descarta el aviso.
 
+## Diferenciales del agregador
+
+Dos cosas que ningun portal individual puede ofrecer porque no ve el
+inventario de la competencia -- se calculan cruzando los resultados de
+los 4 portales de cada busqueda:
+
+- **"Buen precio"** (`backend/app/precio_justo.py`): calcula precio/m²
+  de cada aviso y lo compara contra la mediana de precio/m² de esta
+  misma busqueda (agrupado por moneda, USD y ARS no se mezclan). Si un
+  aviso esta 15% o mas por debajo de esa mediana, se marca. No se marca
+  nada si el grupo tiene menos de 5 avisos comparables (con poca
+  muestra la mediana no dice mucho). No es una tasacion ni un "precio
+  de mercado" objetivo -- es relativo a lo que trajo esa busqueda
+  puntual.
+- **Historial de precios / "Bajo de precio"** (`backend/app/historial.py`):
+  cada busqueda registra el precio de cada aviso en un SQLite local
+  (`backend/data/historial.db`, se crea solo, gitignored). Si en una
+  busqueda posterior el mismo aviso (portal + id) aparece con un precio
+  distinto, se marca como baja (o suba) de precio, con precio anterior
+  y hace cuantos dias cambio. **No hay datos "de arranque"**: recien
+  arma historial con el uso real a lo largo del tiempo -- si nadie
+  vuelve a buscar lo mismo, no hay forma de detectar una baja que paso
+  en el medio. No hay un cron corriendo re-scrapeando solo; el registro
+  pasa cada vez que alguien busca.
+
 ## Como correr
 
 Backend:

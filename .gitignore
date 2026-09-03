@@ -8,4 +8,5 @@ backend/uvicorn_out.log
 backend/uvicorn_err.log
 backend/cloudflared.log
 backend/tools/
+backend/data/
 .DS_Store

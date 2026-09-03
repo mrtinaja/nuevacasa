@@ -2,7 +2,9 @@ import json
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+from app.historial import registrar_y_enriquecer
 from app.models import Filtros, PortalResultado, Propiedad, SearchResponse
+from app.precio_justo import marcar_buen_precio
 from app.scrapers.argenprop import ArgenpropScraper
 from app.scrapers.base import ScraperBloqueado, ScraperNoImplementado
 from app.scrapers.mercadolibre import MercadoLibreScraper
@@ -74,6 +76,11 @@ def buscar(filtros: Filtros) -> SearchResponse:
             props, resultado = futuro.result()
             propiedades.extend(props)
             resultados_portal.append(resultado)
+
+    # Estas dos solo tienen sentido con el inventario de todos los
+    # portales ya junto -- por eso se calculan aca y no en cada scraper.
+    marcar_buen_precio(propiedades)
+    registrar_y_enriquecer(propiedades)
 
     if filtros.orden == "precio_asc":
         propiedades.sort(key=lambda p: (p.precio is None, p.precio))

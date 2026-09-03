@@ -322,6 +322,15 @@ function renderTarjetas(propiedades) {
         .filter(Boolean)
         .join("");
 
+      const destacados = [
+        p.buen_precio ? `<span class="destacado-buen-precio" title="Precio/m² notablemente por debajo de la mediana de esta busqueda">Buen precio</span>` : "",
+        p.precio_bajado
+          ? `<span class="destacado-bajo-precio" title="${p.precio_anterior ? "Antes " + p.moneda + " " + p.precio_anterior.toLocaleString("es-AR") : "Bajo de precio"}">${p.dias_desde_baja_precio === 0 ? "Bajo de precio hoy" : "Bajo de precio hace " + p.dias_desde_baja_precio + " dias"}</span>`
+          : "",
+      ]
+        .filter(Boolean)
+        .join("");
+
       const thumb = p.imagen_url
         ? `<img class="thumb" src="${escapeHtml(p.imagen_url)}" alt="" loading="lazy" onerror="this.parentElement.classList.add('thumb-fallback')" />`
         : "";
@@ -336,6 +345,7 @@ function renderTarjetas(propiedades) {
         <h3>${escapeHtml(p.titulo)}</h3>
         <p class="precio">${escapeHtml(p.moneda ?? "")} ${p.precio?.toLocaleString("es-AR") ?? "Consultar"}</p>
         <p class="direccion">${escapeHtml(p.direccion ?? p.barrio ?? "")}</p>
+        ${destacados ? `<div class="destacados">${destacados}</div>` : ""}
         <div class="features">${features}</div>
       </div>
     </a>`;

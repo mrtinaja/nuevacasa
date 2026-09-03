@@ -87,6 +87,21 @@ class Propiedad(BaseModel):
     dias_desde_publicacion: Optional[int] = None
     distancia_general_paz_km: Optional[float] = None
     distancia_general_paz_aprox: bool = False  # True = centroide del barrio, no del aviso puntual
+
+    # Calculados centralmente en el orchestrator, cruzando datos de todos
+    # los portales de esta busqueda -- ningun portal individual puede
+    # ofrecer esto porque no ve el inventario de la competencia.
+    precio_m2: Optional[float] = None
+    buen_precio: bool = False  # precio/m2 notablemente por debajo de la mediana de esta busqueda
+
+    # Calculados con el historial local (SQLite) que se va acumulando
+    # busqueda a busqueda -- no hay datos historicos "de arranque", se
+    # construyen con el uso real a lo largo del tiempo.
+    dias_en_mercado: Optional[int] = None  # desde la primera vez que se vio este aviso
+    precio_anterior: Optional[float] = None
+    precio_bajado: bool = False
+    dias_desde_baja_precio: Optional[int] = None
+
     url: str
     imagen_url: Optional[str] = None
 
