@@ -4,7 +4,6 @@ from app.models import Filtros, PortalResultado, Propiedad, SearchResponse
 from app.scrapers.argenprop import ArgenpropScraper
 from app.scrapers.base import ScraperBloqueado, ScraperNoImplementado
 from app.scrapers.mercadolibre import MercadoLibreScraper
-from app.scrapers.properati import ProperatiScraper
 from app.scrapers.remax import RemaxScraper
 from app.scrapers.zonaprop import ZonapropScraper
 
@@ -15,7 +14,6 @@ SCRAPERS = {
         MercadoLibreScraper(),
         ZonapropScraper(),
         RemaxScraper(),
-        ProperatiScraper(),
     ]
 }
 

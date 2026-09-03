@@ -25,7 +25,22 @@ mucho entre portales, no sigue el patron de los demas:
 | MercadoLibre  | Funcionando            | No usa la API oficial (ver seccion abajo). Scraping de la pagina publica inmuebles.mercadolibre.com.ar, que trae un bloque JSON-LD (`schema.org/RealEstateListing`) sin login ni token. Menos campos que ZonaProp (solo ambientes, no dormitorios/banos/superficie/antiguedad). |
 | ZonaProp      | Funcionando            | No es HTML scraping puro: la pagina trae un JSON completo embebido (`window.__PRELOADED_STATE__`) con precio, ambientes, dormitorios, banos, superficie, antiguedad, ubicacion e imagenes -- mas rico que Argenprop. Mismo riesgo de anti-bot (403/202/429) y misma limitacion de solo pagina 1. |
 | RE/MAX        | Funcionando            | App Angular con SSR: se encontro su API publica real (`api-ar.redremax.com`) leyendo el TransferState (`ng-state`) embebido en el HTML. Sin anti-bot detectado. Operacion (venta/alquiler) es server-side; tipo de propiedad y ubicacion se filtran client-side (texto contra `geoLabel`/`displayAddress`, confirmado: 17/17 resultados reales en Capital Federal). No distingue Zona Norte/Sur/Este/Oeste, cae a la provincia entera. |
-| Properati     | Bloqueado (infra)      | El sitio entero devuelve `401 Access Denied` (probado con curl y con navegador real, en dos intentos separados), incluso en el homepage -- parece un bloqueo de IP/WAF al entorno donde corremos, no algo que se arregle con headers. No hay API publica documentada, solo datasets historicos ("Properati Data") en BigQuery, que no sirven para busqueda en vivo. **No se puede implementar el scraper sin poder inspeccionar la pagina real** -- si alguien puede acceder al sitio desde otra red y compartir el HTML de una busqueda, se puede retomar. El badge en la UI muestra `blocked` (no `not_implemented`): el scraper intenta la conexion real en cada busqueda, asi que si el bloqueo se levanta algun dia el estado lo va a reflejar solo. |
+
+## Portales descartados
+
+- **Roomix**: el dominio que se tenia en mente (roomix.com.ar) esta
+  caido; el real es roomix.ai, que resulto ser un agregador con IA que
+  ya combina ZonaProp/Argenprop/MercadoLibre -- las mismas fuentes que
+  ya scrapeamos directamente. Sumarlo hubiera sido mayormente
+  duplicados.
+- **Properati**: el sitio entero devuelve `401 Access Denied` para
+  clientes no-browser (confirmado que el navegador normal del usuario
+  entra perfecto -- no es un bloqueo de IP/reputacion como los otros
+  portales, es especificamente contra clientes tipo `requests`/scripts).
+  La unica forma de pasar eso seria imitar un browser real (Playwright)
+  especificamente para evadir esa deteccion, y eso es bypassear
+  bot-detection -- un limite que no se cruza aunque el usuario lo pida.
+  Removido del proyecto a proposito, no queda pendiente.
 
 ## MercadoLibre: por que no usa la API oficial
 
@@ -148,13 +163,11 @@ scraping directo.
 
 ## Roadmap
 
-1. Properati: retomar si se consigue inspeccionar el sitio desde una red
-   que no este bloqueada.
-2. Paginacion real en Argenprop y ZonaProp (hoy solo pagina 1).
-3. Filtro de ubicacion real para Argenprop/ZonaProp/MercadoLibre (RE/MAX
+1. Paginacion real en Argenprop y ZonaProp (hoy solo pagina 1).
+2. Filtro de ubicacion real para Argenprop/ZonaProp/MercadoLibre (RE/MAX
    ya lo tiene -- ver seccion Ubicacion).
-4. Zona Norte/Sur/Este/Oeste con lista curada de partidos reales, en vez
+3. Zona Norte/Sur/Este/Oeste con lista curada de partidos reales, en vez
    de caer a "toda la provincia" (RE/MAX) o un slug sin verificar
    (Argenprop/ZonaProp).
-5. Deduplicacion de propiedades repetidas entre portales.
-6. Cache de resultados para no re-pegarle a los portales en cada busqueda.
+4. Deduplicacion de propiedades repetidas entre portales.
+5. Cache de resultados para no re-pegarle a los portales en cada busqueda.
