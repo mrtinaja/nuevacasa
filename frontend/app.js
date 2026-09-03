@@ -11,20 +11,51 @@ const API_URL = ES_LOCAL
   ? "http://localhost:8000/api/search"
   : "https://associates-remembered-care-alerts.trycloudflare.com/api/search";
 
-// Dataset curado de ubicaciones (no es exhaustivo). El slug de "Zona" es lo
-// que efectivamente se manda al backend como filtros.ubicacion, y hoy solo
-// Argenprop lo interpreta -- otros portales pueden necesitar otro formato
-// de slug el dia que se implementen. El slug compuesto "<provincia>-zona-x"
-// es una convencion razonable pero todavia no se confirmo 1:1 contra la
-// taxonomia real de Argenprop (queda pendiente verificarlo).
-const ZONAS_CARDINALES = ["Zona Norte", "Zona Sur", "Zona Este", "Zona Oeste"];
-
+// Dataset curado de ubicaciones (no es exhaustivo, hay muchos mas barrios
+// y partidos/departamentos reales que los listados aca). El slug de "Zona"
+// es lo que efectivamente se manda al backend como filtros.ubicacion --
+// va PELADO (ej. "palermo", "la-plata"), sin prefijo de provincia.
+// Confirmado en vivo que ZonaProp y MercadoLibre aceptan barrios pelados
+// para Capital Federal; Argenprop y los partidos/departamentos de otras
+// provincias siguen el mismo patron pero no se verificaron todos
+// individualmente.
 const UBICACIONES = {
-  "Capital Federal": { todas: "capital-federal", zonas: ZONAS_CARDINALES },
-  "Buenos Aires (provincia)": { todas: "buenos-aires", zonas: ZONAS_CARDINALES },
-  "Cordoba": { todas: "cordoba", zonas: ZONAS_CARDINALES },
-  "Santa Fe": { todas: "santa-fe", zonas: ZONAS_CARDINALES },
-  "Mendoza": { todas: "mendoza", zonas: ZONAS_CARDINALES },
+  "Capital Federal": {
+    todas: "capital-federal",
+    todasLabel: "Todos los barrios",
+    zonas: [
+      "Almagro", "Balvanera", "Barracas", "Barrio Norte", "Belgrano",
+      "Boedo", "Caballito", "Colegiales", "Constitucion", "Flores",
+      "Floresta", "La Boca", "Monserrat", "Monte Castro", "Nuñez",
+      "Palermo", "Parque Chacabuco", "Parque Patricios", "Puerto Madero",
+      "Recoleta", "Retiro", "Saavedra", "San Cristobal", "San Nicolas",
+      "San Telmo", "Villa Crespo", "Villa del Parque", "Villa Devoto",
+      "Villa Lugano", "Villa Luro", "Villa Urquiza",
+    ],
+  },
+  "Buenos Aires": {
+    todas: "buenos-aires",
+    todasLabel: "Toda la provincia",
+    zonas: [
+      "La Plata", "Mar del Plata", "San Isidro", "Vicente Lopez", "Tigre",
+      "Quilmes", "Pilar", "Nordelta", "Avellaneda", "Lanus", "Moron",
+    ],
+  },
+  "Cordoba": {
+    todas: "cordoba",
+    todasLabel: "Toda la provincia",
+    zonas: ["Cordoba Capital", "Villa Carlos Paz", "Rio Cuarto", "Villa Maria", "Alta Gracia"],
+  },
+  "Santa Fe": {
+    todas: "santa-fe",
+    todasLabel: "Toda la provincia",
+    zonas: ["Rosario", "Santa Fe Capital", "Rafaela", "Venado Tuerto"],
+  },
+  "Mendoza": {
+    todas: "mendoza",
+    todasLabel: "Toda la provincia",
+    zonas: ["Mendoza Capital", "Godoy Cruz", "Lujan de Cuyo", "Maipu", "San Rafael"],
+  },
 };
 
 function slugify(texto) {
@@ -77,9 +108,9 @@ function poblarZonas(nombreProvincia) {
     ubicacionSelect.innerHTML = "";
     return;
   }
-  const opciones = [`<option value="${provincia.todas}">Toda la provincia</option>`].concat(
+  const opciones = [`<option value="${provincia.todas}">${escapeHtml(provincia.todasLabel)}</option>`].concat(
     provincia.zonas.map((zona) => {
-      const slug = `${provincia.todas}-${slugify(zona)}`;
+      const slug = slugify(zona);
       return `<option value="${slug}">${escapeHtml(zona)}</option>`;
     })
   );

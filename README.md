@@ -80,15 +80,25 @@ no dispara nuevos requests a los portales al cambiar de pagina.
 ## Ubicacion
 
 El frontend arma el filtro `ubicacion` con dos selects en cascada
-(Provincia -> Zona: Norte/Sur/Este/Oeste, dataset curado en
-`frontend/app.js`, `UBICACIONES`). El slug que se manda es
-`<provincia>-zona-<punto-cardinal>` (ej. `buenos-aires-zona-norte`); es una
-convencion razonable pero todavia no esta verificada 1:1 contra la
-taxonomia real de Argenprop, asi que puede no traer resultados para
-algunas combinaciones hasta confirmarla. RE/MAX es la excepcion: no usa
-ese slug tal cual, hace matching de texto (ver tabla de portales arriba),
-asi que "toda la provincia" y "Capital Federal" andan bien pero el
-sufijo `-zona-x` se ignora ahi.
+(Provincia -> Zona/Barrio, dataset curado en `frontend/app.js`,
+`UBICACIONES`). El segundo select trae barrios reales para Capital
+Federal y partidos/departamentos reales para las demas provincias
+(no es exhaustivo, son los mas conocidos de cada una). El slug que se
+manda es el nombre pelado, sin prefijo de provincia (ej. `palermo`,
+`la-plata`), confirmado en vivo:
+
+- **ZonaProp**: confirmado, barrio pelado funciona (usa esos mismos
+  slugs en sus propios links de navegacion).
+- **MercadoLibre**: confirmado en vivo -- comparamos los avisos que
+  trae `capital-federal` vs `palermo` y son conjuntos distintos (94%
+  no se superponen), asi que filtra de verdad.
+- **RE/MAX**: no usa el slug para armar la URL (ver tabla de portales
+  arriba), hace matching de texto contra `geoLabel`/`displayAddress`
+  con el nombre de la zona -- funciona igual de bien con un barrio
+  puntual que con la provincia entera.
+- **Argenprop**: mismo patron de slug pelado que los demas, pero no se
+  pudo confirmar en vivo (viene bloqueado por el anti-bot desde hace
+  rato). Presumiblemente funciona igual, sin verificar.
 
 ## Filtros
 
