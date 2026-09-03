@@ -27,7 +27,7 @@ SCRAPERS = {
 # pegarle al portal de mas cuando el usuario repite o casi repite una
 # busqueda (ej. toca "Buscar" de nuevo, cambia un filtro que ni se
 # aplica a este portal, etc.). Se pierde al reiniciar el backend --
-# no hace falta mas que eso para este prototipo.
+# no hace falta mas que eso para el uso actual (personal/local).
 _CACHE_TTL_SEGUNDOS = 10 * 60
 _cache: dict[str, tuple[float, list[Propiedad], PortalResultado]] = {}
 

@@ -8,7 +8,7 @@ app = FastAPI(title="NuevaCasa API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # prototipo local; restringir en produccion
+    allow_origins=["*"],  # uso personal/local; restringir si se comparte
     allow_methods=["*"],
     allow_headers=["*"],
 )

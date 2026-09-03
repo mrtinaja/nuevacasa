@@ -1,8 +1,8 @@
 # NuevaCasa
 
-Buscador agregado de propiedades. Prototipo local: un backend en FastAPI
-orquesta un scraper por portal, normaliza los resultados a un esquema
-comun y un frontend simple los muestra con filtros.
+Buscador agregado de propiedades. Un backend en FastAPI orquesta un
+scraper por portal, normaliza los resultados a un esquema comun y un
+frontend los muestra con filtros.
 
 ## Tipos de propiedad
 
@@ -203,9 +203,9 @@ URL nueva en pantalla.
 
 Los portales listados como pendientes no tienen API publica libre y sus
 Terminos de Servicio en general prohiben el scraping automatizado. Este
-proyecto es un prototipo para uso personal/local; antes de escalarlo a
-produccion o uso compartido conviene revisar los ToS de cada portal y
-evaluar contactarlos por acceso a datos (feeds, partnerships) en vez de
+proyecto es para uso personal/local; antes de escalarlo a produccion o
+uso compartido conviene revisar los ToS de cada portal y evaluar
+contactarlos por acceso a datos (feeds, partnerships) en vez de
 scraping directo.
 
 ## Roadmap
