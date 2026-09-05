@@ -6,18 +6,3 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     plan: free
-
-  # Servicio de PRUEBA -- misma app, region distinta (Frankfurt en vez de
-  # la default Oregon), para ver si ZonaProp/MercadoLibre bloquean menos
-  # desde un pool de IPs distinto. No lo usa el frontend todavia; es solo
-  # para comparar contra compratucasa-api antes de decidir si vale la
-  # pena migrar la produccion. Borrar este bloque (y el servicio en el
-  # dashboard de Render) cuando se termine la prueba.
-  - type: web
-    name: nuevacasa-test-frankfurt
-    env: python
-    region: frankfurt
-    rootDir: backend
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
-    plan: free
