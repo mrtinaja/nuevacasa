@@ -92,10 +92,21 @@ cardinal tiene una opcion propia ("Toda la Zona Norte", etc,
 value=`zona-norte`/`zona-oeste`/`zona-sur`) que busca en TODOS los
 partidos de esa zona a la vez -- ver `backend/app/zonas_cardinales.py`
 para la lista real de partidos por zona (sincronizada a mano con
-`frontend/app.js`). Las demas provincias listan los partidos/departamentos
-mas conocidos de cada una (no exhaustivo). El slug que se manda es el
-nombre pelado, sin prefijo de provincia (ej. `palermo`, `la-plata`),
-confirmado en vivo:
+`frontend/app.js`). Tambien tiene un grupo aparte **"Costa Atlantica"**
+con las localidades del corredor de veraneo bonaerense (San Clemente
+del Tuyu a Monte Hermoso, de norte a sur) -- sin fan-out de zona
+cardinal (busca localidad por localidad, no hay "toda la costa" como
+opcion).
+
+Ademas de las 5 provincias originales (Capital Federal, Buenos Aires,
+Cordoba, Santa Fe, Mendoza), se sumaron **Tucuman, Entre Rios, Salta,
+Misiones, Chaco, Corrientes, Santiago del Estero, San Juan, Jujuy, Rio
+Negro, Neuquen y Chubut** (17 en total) -- Rio Negro y Chubut incluyen
+sus localidades costeras patagonicas (Las Grutas, Puerto Madryn,
+Rawson). Cada una lista las ciudades/departamentos mas conocidos (no
+exhaustivo). El slug que se manda es el nombre pelado, sin prefijo de
+provincia (ej. `palermo`, `la-plata`), confirmado en vivo para
+Capital Federal:
 
 - **ZonaProp**: confirmado, barrio pelado funciona (usa esos mismos
   slugs en sus propios links de navegacion).

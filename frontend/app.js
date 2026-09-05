@@ -66,7 +66,15 @@ const UBICACIONES = {
       "Zona Norte": ["San Isidro", "Vicente Lopez", "Tigre", "San Fernando", "Pilar", "Nordelta"],
       "Zona Oeste": ["Moron", "Ituzaingo", "Merlo", "Moreno"],
       "Zona Sur": ["Quilmes", "Avellaneda", "Lanus", "Lomas de Zamora", "La Plata"],
-      "Otras ciudades": ["Mar del Plata"],
+      // Costa Atlantica bonaerense -- el corredor de veraneo clasico,
+      // de norte a sur.
+      "Costa Atlantica": [
+        "San Clemente del Tuyu", "Las Toninas", "Santa Teresita",
+        "Mar del Tuyu", "San Bernardo", "Mar de Ajo", "Pinamar",
+        "Cariló", "Valeria del Mar", "Ostende", "Villa Gesell",
+        "Mar de las Pampas", "Mar del Plata", "Miramar", "Necochea",
+        "Monte Hermoso",
+      ],
     },
   },
   "Cordoba": {
@@ -83,6 +91,68 @@ const UBICACIONES = {
     todas: "mendoza",
     todasLabel: "Toda la provincia",
     zonas: ["Mendoza Capital", "Godoy Cruz", "Lujan de Cuyo", "Maipu", "San Rafael"],
+  },
+  "Tucuman": {
+    todas: "tucuman",
+    todasLabel: "Toda la provincia",
+    zonas: ["San Miguel de Tucuman", "Yerba Buena", "Tafi Viejo", "Concepcion", "Tafi del Valle"],
+  },
+  "Entre Rios": {
+    todas: "entre-rios",
+    todasLabel: "Toda la provincia",
+    zonas: ["Parana", "Concordia", "Gualeguaychu", "Concepcion del Uruguay", "Gualeguay"],
+  },
+  "Salta": {
+    todas: "salta",
+    todasLabel: "Toda la provincia",
+    zonas: ["Salta Capital", "San Ramon de la Nueva Oran", "Tartagal", "Cafayate"],
+  },
+  "Misiones": {
+    todas: "misiones",
+    todasLabel: "Toda la provincia",
+    zonas: ["Posadas", "Obera", "Eldorado", "Puerto Iguazu"],
+  },
+  "Chaco": {
+    todas: "chaco",
+    todasLabel: "Toda la provincia",
+    zonas: ["Resistencia", "Presidencia Roque Saenz Peña", "Villa Angela"],
+  },
+  "Corrientes": {
+    todas: "corrientes",
+    todasLabel: "Toda la provincia",
+    zonas: ["Corrientes Capital", "Goya", "Mercedes"],
+  },
+  "Santiago del Estero": {
+    todas: "santiago-del-estero",
+    todasLabel: "Toda la provincia",
+    zonas: ["Santiago del Estero Capital", "La Banda", "Termas de Rio Hondo"],
+  },
+  "San Juan": {
+    todas: "san-juan",
+    todasLabel: "Toda la provincia",
+    zonas: ["San Juan Capital", "Rivadavia", "Chimbas", "Rawson"],
+  },
+  "Jujuy": {
+    todas: "jujuy",
+    todasLabel: "Toda la provincia",
+    zonas: ["San Salvador de Jujuy", "Palpala", "Perico"],
+  },
+  "Rio Negro": {
+    todas: "rio-negro",
+    todasLabel: "Toda la provincia",
+    // Incluye costa atlantica rionegrina (Las Grutas).
+    zonas: ["Viedma", "San Carlos de Bariloche", "General Roca", "Cipolletti", "Las Grutas"],
+  },
+  "Neuquen": {
+    todas: "neuquen",
+    todasLabel: "Toda la provincia",
+    zonas: ["Neuquen Capital", "Plottier", "Cutral Co", "San Martin de los Andes", "Villa La Angostura"],
+  },
+  "Chubut": {
+    todas: "chubut",
+    todasLabel: "Toda la provincia",
+    // Incluye costa atlantica chubutense (Puerto Madryn, Rawson).
+    zonas: ["Comodoro Rivadavia", "Trelew", "Puerto Madryn", "Rawson", "Esquel"],
   },
 };
 
