@@ -251,18 +251,6 @@ blueprint en `render.yaml`, plan free) y se **autodeploya solo en cada
 push a `main`** -- no hace falta gatillar nada a mano despues de un
 `git push`.
 
-Antes de esto el backend corria en la PC del usuario expuesto via
-tunel (primero Cloudflare, despues ngrok), abandonado a proposito por
-depender de que la PC este prendida 24hs. Queda documentado por si
-hace falta volver a esa alternativa:
-- La tarea programada de Windows ("NuevaCasa Backend", Programador de
-  Tareas) que arrancaba el backend + tunel al iniciar sesion esta
-  **deshabilitada** (no borrada -- se puede reactivar desde el
-  Programador de Tareas si hiciera falta).
-- El script `iniciar_backend.bat` sigue en el repo, sirve para correr
-  el backend local a mano (desarrollo), ya no es necesario para que el
-  sitio publico funcione.
-
 **Limitaciones del plan free de Render a tener en cuenta**:
 - **Se "duerme" tras ~15 min sin trafico**: la primera visita despues
   de un rato de inactividad tarda unos segundos de mas en responder
@@ -275,13 +263,45 @@ hace falta volver a esa alternativa:
   va a detectar menos bajas de las que detectaria con un disco
   persistente. Para que esto persista de verdad hace falta un plan
   pago de Render con disco, o una base de datos externa.
-- **IP compartida**: Render usa IPs de datacenter compartidas entre
-  muchos servicios, lo que historicamente hizo que ZonaProp/MercadoLibre
-  bloqueen mas seguido que con una IP residencial (la de una PC/hogar
-  real, como la que se usaba con el tunel). Esto no se soluciono, solo
-  se acepto como tradeoff a cambio de no depender de la PC -- si se
-  vuelve un problema recurrente, la alternativa es sumar un proxy
-  residencial pago solo para esos dos portales.
+- **IP compartida (de datacenter)**: Render bloquea igual en TODAS sus
+  regiones -- se probo en vivo levantando un segundo servicio de prueba
+  en Frankfurt (en vez de la default Oregon) y ZonaProp/MercadoLibre
+  bloquearon exactamente igual. Conclusion: no es reputacion de una
+  region puntual, es que estos portales detectan "esto es una IP de
+  datacenter" en general. Tambien se probo endurecer los scrapers
+  (sesion persistente, cookies, headers completos, reintento -- mismo
+  tratamiento que ya tenia Argenprop) para ZonaProp y MercadoLibre: no
+  cambio nada en Render (mismo bloqueo, 12/12 intentos). MercadoLibre
+  en particular redirige con HTTP 200 en vez de tirar un 403 seco, lo
+  que sugiere un sistema de bot-management mas sofisticado
+  (probablemente fingerprint TLS) que ninguna de estas mitigaciones
+  legitimas puede resolver.
+
+### Respaldo opcional: tunel de ngrok hacia la PC (invisible para quien busca)
+
+Como Render bloquea ZonaProp/MercadoLibre segudio pero la IP
+residencial de la PC del desarrollador no, el frontend (`app.js`,
+`completarConTunel()`) intenta un segundo pedido contra un tunel de
+ngrok hacia esa PC **solo cuando Render devuelve 2 o mas portales
+bloqueados**, con un timeout corto (8s). Si la PC esta prendida y el
+tunel andando, se usa para completar los portales que a Render le
+fallaron (merge por portal, no se duplican avisos); si no responde a
+tiempo (PC apagada, tunel caido), el intento simplemente se descarta y
+se sigue con lo que ya trajo Render, sin mostrar ningun error -- es
+invisible para quien busca, nunca es la fuente principal.
+
+Esto significa que la PC **no es obligatoria** para que el sitio
+funcione (Render solo ya alcanza), pero cuando esta prendida el sitio
+trae mas resultados reales. Para que esto ande:
+- La tarea programada de Windows ("NuevaCasa Backend", Programador de
+  Tareas) arranca backend + tunel al iniciar sesion. Se puede
+  deshabilitar desde el Programador de Tareas sin romper el sitio (el
+  respaldo simplemente deja de estar disponible).
+- El dominio del tunel es fijo (`celtic-lapel-smirk.ngrok-free.dev`,
+  cuenta gratis de ngrok) -- no cambia entre reinicios, no hace falta
+  tocar `app.js` por esto.
+- El script `iniciar_backend.bat` sigue sirviendo para correr el
+  backend local a mano.
 
 ## Legal
 

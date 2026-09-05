@@ -9,6 +9,20 @@ const API_URL = ES_LOCAL
   ? "http://localhost:8000/api/search"
   : "https://nuevacasa.onrender.com/api/search";
 
+// Respaldo opcional: la IP de Render es de datacenter y ZonaProp/
+// MercadoLibre la bloquean seguido (confirmado: el mismo bloqueo pasa
+// en cualquier region de Render, no es cuestion de reputacion de una
+// region puntual -- ver README). La IP residencial de la PC del
+// desarrollador no tiene ese problema. Si Render devuelve 2 o mas
+// portales bloqueados, se intenta el mismo pedido contra ese tunel con
+// un timeout corto -- si la PC esta prendida y el tunel andando,
+// se usa lo que traiga; si no, el intento falla rapido y se sigue con
+// lo que ya trajo Render, sin mostrar ningun error (respaldo invisible
+// para quien busca).
+const TUNEL_URL = "https://celtic-lapel-smirk.ngrok-free.dev/api/search";
+const TUNEL_TIMEOUT_MS = 8000;
+const UMBRAL_PORTALES_BLOQUEADOS_PARA_RESPALDO = 2;
+
 // Dataset curado de ubicaciones (no es exhaustivo, hay muchos mas barrios
 // y partidos/departamentos reales que los listados aca). El slug de "Zona"
 // es lo que efectivamente se manda al backend como filtros.ubicacion --
@@ -164,6 +178,37 @@ toggleMasFiltros.addEventListener("click", () => {
   toggleMasFiltros.querySelector(".link-btn-label").textContent = abrir ? "Menos filtros" : "Mas filtros";
 });
 
+async function completarConTunel(resultadoRender, filtros) {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), TUNEL_TIMEOUT_MS);
+    const resp = await fetch(TUNEL_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "ngrok-skip-browser-warning": "true" },
+      body: JSON.stringify(filtros),
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    if (!resp.ok) return resultadoRender;
+    const resultadoTunel = await resp.json();
+
+    const propiedades = resultadoRender.propiedades.slice();
+    const portales = resultadoRender.portales.map((p) => {
+      if (p.status === "ok") return p;
+      const delTunel = resultadoTunel.portales.find((t) => t.portal === p.portal);
+      if (!delTunel || delTunel.status !== "ok") return p;
+      propiedades.push(...resultadoTunel.propiedades.filter((prop) => prop.portal === p.portal));
+      return delTunel;
+    });
+
+    return { propiedades, portales };
+  } catch (err) {
+    // Tunel no disponible (PC apagada, ngrok caido, timeout) -- se sigue
+    // con lo que ya trajo Render, sin mostrar ningun error.
+    return resultadoRender;
+  }
+}
+
 function numeroOrNull(valor) {
   return valor === "" ? null : Number(valor);
 }
@@ -218,7 +263,13 @@ form.addEventListener("submit", async (ev) => {
       body: JSON.stringify(filtros),
     });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const resultado = await resp.json();
+    let resultado = await resp.json();
+
+    const bloqueados = resultado.portales.filter((p) => p.status !== "ok").length;
+    if (!ES_LOCAL && bloqueados >= UMBRAL_PORTALES_BLOQUEADOS_PARA_RESPALDO) {
+      resultado = await completarConTunel(resultado, filtros);
+    }
+
     renderPortales(resultado.portales);
     renderResultados(resultado.propiedades);
   } catch (err) {
