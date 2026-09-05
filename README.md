@@ -254,12 +254,23 @@ simplificado de ~22.700 a ~780 puntos (`frontend/partidos-delitos.geojson`,
 el badge, coloreando el partido entero con opacidad baja (no tapa el
 mapa de calles/satelite de abajo).
 
-**Cobertura real, no completa a proposito**: solo Buenos Aires
-provincia (partidos + Costa Atlantica) tiene el cruce hecho hoy. CABA
-necesitaria mapear barrio->comuna aparte (el SNIC viene por comuna, no
-por barrio) y las 12 provincias sumadas mas recientemente todavia no
-se cruzaron -- devuelven `delitos_zona: null` en vez de mostrar un
-numero inventado o aproximado.
+**Ojo, dos coberturas distintas**: el **badge de texto** (arriba de los
+resultados) tiene dato para las 17 provincias curadas. La **capa de
+poligonos coloreados en el mapa** todavia es solo Buenos Aires
+provincia -- para las demas provincias haria falta bajar y simplificar
+sus limites geograficos tambien (mismo proceso, mas trabajo de datos,
+queda pendiente).
+
+**Cobertura del badge**: las 17 provincias curadas (~157 localidades) tienen el
+cruce hecho. CABA usa el mapeo oficial barrio->comuna (Ley 1777, el
+SNIC viene por comuna, no por barrio) -- varios barrios de la misma
+comuna muestran el mismo numero. "Barrio Norte" (no es una comuna
+oficial) y "Rawson" (colisiona entre San Juan y Chubut, el slug no
+lleva prefijo de provincia asi que no se puede saber cual de las dos)
+quedan deliberadamente sin dato en vez de mostrar un numero que podria
+ser el equivocado. Las opciones "Toda la provincia" muestran el total
+de todos sus departamentos, marcado aparte (`es_agregado_provincial`)
+porque es una escala totalmente distinta a una localidad puntual.
 
 **Limitaciones reales, aclaradas tambien en la UI (tooltip)**:
 - Es la cantidad TOTAL de hechos en 2024, sin ajustar por poblacion --

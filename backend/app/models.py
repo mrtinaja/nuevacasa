@@ -120,6 +120,7 @@ class PortalResultado(BaseModel):
 class InfoDelitos(BaseModel):
     hechos_2024: int
     nivel: str  # "bajo" | "medio" | "alto" -- terciles relativos, no un estandar externo
+    es_agregado_provincial: bool = False  # True si es "toda la provincia", no comparable 1 a 1 con una localidad puntual
 
 
 class SearchResponse(BaseModel):

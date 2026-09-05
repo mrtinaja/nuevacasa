@@ -426,11 +426,14 @@ function renderDelitosZona(delitos) {
   }
   delitosZonaEl.hidden = false;
   delitosZonaEl.className = `delitos-zona nivel-${delitos.nivel}`;
+  const nivelTexto = delitos.es_agregado_provincial
+    ? `<strong>toda la provincia</strong> -- no comparable 1 a 1 con una localidad puntual`
+    : `nivel relativo <strong>${NIVEL_LABEL[delitos.nivel]}</strong>`;
   delitosZonaEl.innerHTML = `
     <span class="punto" aria-hidden="true"></span>
     <span>
       Delitos contra la propiedad en esta zona (2024): <strong>${delitos.hechos_2024.toLocaleString("es-AR")} hechos</strong>
-      &middot; nivel relativo <strong>${NIVEL_LABEL[delitos.nivel]}</strong>
+      &middot; ${nivelTexto}
       <span title="Total anual sin ajustar por poblacion -- una zona grande o turistica va a mostrar mas hechos solo por tener mas gente, no necesariamente por ser menos segura por habitante. Fuente: SNIC, Ministerio de Seguridad de la Nacion.">(?)</span>
     </span>
   `;
