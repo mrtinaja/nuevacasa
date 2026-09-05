@@ -10,4 +10,5 @@ backend/cloudflared.log
 backend/ngrok.log
 backend/tools/
 backend/data/
+backend/monitoreo/
 .DS_Store

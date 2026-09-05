@@ -1,4 +1,5 @@
 import json
+import time
 from datetime import date, datetime
 
 import requests
@@ -115,6 +116,18 @@ def _tiene_feature(features: dict, *palabras_clave: str) -> bool | None:
 
 
 class ZonapropScraper(Scraper):
+    """
+    Mismo endurecimiento anti-bloqueo que Argenprop (ver ese scraper):
+    sesion persistente (cookies entre pedidos), un pedido de
+    "calentamiento" al home antes del primer pedido real, headers mas
+    completos (no solo User-Agent), y un reintento con espera corta si
+    la primera respuesta viene bloqueada. No hay garantia de que
+    alcance -- si el bloqueo de ZonaProp es por reputacion de la IP (no
+    por patron de pedido), esto no lo va a arreglar -- pero es la misma
+    mitigacion legitima que ya funciono parcialmente en Argenprop, asi
+    que vale la pena aplicarla aca tambien.
+    """
+
     name = "zonaprop"
     BASE_URL = "https://www.zonaprop.com.ar"
     HEADERS = {
@@ -122,9 +135,55 @@ class ZonapropScraper(Scraper):
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
             "(KHTML, like Gecko) Chrome/124.0 Safari/537.36"
         ),
+        "Accept": (
+            "text/html,application/xhtml+xml,application/xml;q=0.9,"
+            "image/avif,image/webp,image/apng,*/*;q=0.8"
+        ),
         "Accept-Language": "es-AR,es;q=0.9",
         "Referer": "https://www.zonaprop.com.ar/",
+        "sec-ch-ua": '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"',
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": '"Windows"',
+        "sec-fetch-dest": "document",
+        "sec-fetch-mode": "navigate",
+        "sec-fetch-site": "same-origin",
+        "Upgrade-Insecure-Requests": "1",
     }
+    REINTENTOS = 1
+    ESPERA_REINTENTO_SEG = 2
+
+    def __init__(self):
+        super().__init__()
+        self._session = requests.Session()
+        self._session.headers.update(self.HEADERS)
+        self._calentado = False
+
+    def _calentar_sesion(self) -> None:
+        if self._calentado:
+            return
+        try:
+            self._session.get(f"{self.BASE_URL}/", timeout=15)
+        except requests.RequestException:
+            pass  # si falla el calentamiento seguimos igual con el request real
+        self._calentado = True
+
+    def _obtener(self, url: str) -> requests.Response:
+        intentos = self.REINTENTOS + 1
+        ultima_resp = None
+        for intento in range(intentos):
+            if intento > 0:
+                time.sleep(self.ESPERA_REINTENTO_SEG)
+            try:
+                resp = self._session.get(url, timeout=15)
+            except requests.RequestException as exc:
+                raise ScraperBloqueado(f"error de red contactando ZonaProp: {exc}") from exc
+            if resp.status_code not in (403, 202, 429):
+                return resp
+            ultima_resp = resp
+        raise ScraperBloqueado(
+            f"ZonaProp devolvio HTTP {ultima_resp.status_code} "
+            f"(probable bloqueo anti-bot, reintentar mas tarde -- ya se reintento {self.REINTENTOS} vez/veces)"
+        )
 
     TIPO_SLUGS = {
         "departamento": "departamentos",
@@ -199,17 +258,10 @@ class ZonapropScraper(Scraper):
         return resultados
 
     def _buscar_una_ubicacion(self, filtros: Filtros, ubicacion: str) -> list[Propiedad]:
+        self._calentar_sesion()
         url, amenity_en_url = self._build_url(filtros, ubicacion)
-        try:
-            resp = requests.get(url, headers=self.HEADERS, timeout=15)
-        except requests.RequestException as exc:
-            raise ScraperBloqueado(f"error de red contactando ZonaProp: {exc}") from exc
+        resp = self._obtener(url)
 
-        if resp.status_code in (403, 202, 429):
-            raise ScraperBloqueado(
-                f"ZonaProp devolvio HTTP {resp.status_code} "
-                "(probable bloqueo anti-bot, reintentar mas tarde)"
-            )
         if resp.status_code != 200:
             raise ScraperBloqueado(f"ZonaProp devolvio HTTP {resp.status_code} inesperado")
 
