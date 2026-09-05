@@ -117,6 +117,12 @@ class PortalResultado(BaseModel):
     cantidad: int = 0
 
 
+class InfoDelitos(BaseModel):
+    hechos_2024: int
+    nivel: str  # "bajo" | "medio" | "alto" -- terciles relativos, no un estandar externo
+
+
 class SearchResponse(BaseModel):
     propiedades: list[Propiedad]
     portales: list[PortalResultado]
+    delitos_zona: Optional[InfoDelitos] = None  # solo Buenos Aires provincia por ahora

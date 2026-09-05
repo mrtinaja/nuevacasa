@@ -227,9 +227,39 @@ los 4 portales de cada busqueda:
   vuelve a buscar lo mismo, no hay forma de detectar una baja que paso
   en el medio. No hay un cron corriendo re-scrapeando solo; el registro
   pasa cada vez que alguien busca.
-- **Mejores precios de esta zona**: fila destacada de hasta 4 avisos
+- **Mejores precios de esta zona**: fila destacada de hasta 3 avisos
   (los de menor precio/m² entre los marcados "Buen precio") arriba de
-  los resultados normales, calculada con el mismo cruce de portales.
+  los resultados normales, en carrusel, calculada con el mismo cruce
+  de portales.
+
+## Delitos contra la propiedad por zona (`backend/app/delitos.py`)
+
+Badge de color mostrado arriba de los resultados con la cantidad de
+delitos contra la propiedad de 2024 en la zona buscada, fuente **SNIC
+(Sistema Nacional de Informacion Criminal), Sistema de Alerta Temprana
+-- Ministerio de Seguridad de la Nacion** (dato oficial, no scrapeado
+de terceros, descargado de https://datos.gob.ar/dataset/seguridad_9).
+
+**Cobertura real, no completa a proposito**: solo Buenos Aires
+provincia (partidos + Costa Atlantica) tiene el cruce hecho hoy. CABA
+necesitaria mapear barrio->comuna aparte (el SNIC viene por comuna, no
+por barrio) y las 12 provincias sumadas mas recientemente todavia no
+se cruzaron -- devuelven `delitos_zona: null` en vez de mostrar un
+numero inventado o aproximado.
+
+**Limitaciones reales, aclaradas tambien en la UI (tooltip)**:
+- Es la cantidad TOTAL de hechos en 2024, sin ajustar por poblacion --
+  una zona grande o turistica (Mar del Plata) va a mostrar mas hechos
+  que una chica solo por tener mas gente, no necesariamente por ser
+  "mas insegura" por habitante. No es una tasa ni un ranking de
+  seguridad.
+- Varias localidades curadas caen en el mismo partido SNIC y por eso
+  muestran el mismo numero (ej. Cariló/Valeria del Mar/Ostende son
+  todos el partido de Pinamar; San Clemente del Tuyú/Las Toninas/Santa
+  Teresita/etc son todos el partido de La Costa).
+- Los niveles bajo/medio/alto son terciles de las localidades ya
+  cargadas (no un estandar externo) -- si se agregan mas localidades
+  convendria recalcularlos.
 
 ## UI: mapa y vista de calles/satelite
 

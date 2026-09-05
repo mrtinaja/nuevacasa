@@ -178,6 +178,7 @@ const form = document.getElementById("filtros-form");
 const estadoPortales = document.getElementById("estado-portales");
 const resultadosEl = document.getElementById("resultados");
 const paginacionEl = document.getElementById("paginacion");
+const delitosZonaEl = document.getElementById("delitos-zona");
 const destacadosWrapEl = document.getElementById("destacados-wrap");
 const destacadosEl = document.getElementById("destacados");
 const toggleVistaEl = document.getElementById("toggle-vista");
@@ -282,7 +283,7 @@ async function completarConTunel(resultadoRender, filtros) {
       return delTunel;
     });
 
-    return { propiedades, portales };
+    return { propiedades, portales, delitos_zona: resultadoRender.delitos_zona };
   } catch (err) {
     // Tunel no disponible (PC apagada, ngrok caido, timeout) -- se sigue
     // con lo que ya trajo Render, sin mostrar ningun error.
@@ -352,6 +353,7 @@ form.addEventListener("submit", async (ev) => {
     }
 
     renderPortales(resultado.portales);
+    renderDelitosZona(resultado.delitos_zona);
     renderResultados(resultado.propiedades);
   } catch (err) {
     estadoPortales.innerHTML = `<span class="badge badge-error">Error: ${escapeHtml(err.message)}</span>`;
@@ -381,6 +383,25 @@ function renderPortales(portales) {
       return `<span class="badge badge-${escapeHtml(p.status)}" style="--stagger-delay: ${i * 50}ms" title="${escapeHtml(p.detalle ?? "")}">${label}</span>`;
     })
     .join("");
+}
+
+const NIVEL_LABEL = { bajo: "Bajo", medio: "Medio", alto: "Alto" };
+
+function renderDelitosZona(delitos) {
+  if (!delitos) {
+    delitosZonaEl.hidden = true;
+    return;
+  }
+  delitosZonaEl.hidden = false;
+  delitosZonaEl.className = `delitos-zona nivel-${delitos.nivel}`;
+  delitosZonaEl.innerHTML = `
+    <span class="punto" aria-hidden="true"></span>
+    <span>
+      Delitos contra la propiedad en esta zona (2024): <strong>${delitos.hechos_2024.toLocaleString("es-AR")} hechos</strong>
+      &middot; nivel relativo <strong>${NIVEL_LABEL[delitos.nivel]}</strong>
+      <span title="Total anual sin ajustar por poblacion -- una zona grande o turistica va a mostrar mas hechos solo por tener mas gente, no necesariamente por ser menos segura por habitante. Fuente: SNIC, Ministerio de Seguridad de la Nacion.">(?)</span>
+    </span>
+  `;
 }
 
 function renderResultados(propiedades) {
