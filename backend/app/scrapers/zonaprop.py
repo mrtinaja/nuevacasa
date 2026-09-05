@@ -400,6 +400,8 @@ class ZonapropScraper(Scraper):
                     acepta_mascotas=acepta_mascotas,
                     dias_desde_publicacion=dias_publicado,
                     distancia_general_paz_km=distancia_gral_paz,
+                    lat=lat,
+                    lon=lon,
                     url=self.BASE_URL + href if href.startswith("/") else href,
                     imagen_url=imagen_url,
                 )

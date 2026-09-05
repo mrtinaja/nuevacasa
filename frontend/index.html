@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -26,14 +27,16 @@
               <stop offset="1" stop-color="#0891b2" />
             </linearGradient>
           </defs>
-          <path d="M10,18 L20,6 L30,18 C31,23 27,29 20,35 C13,29 9,23 10,18 Z" fill="url(#markGrad)" />
-          <path d="M13,18 H27" stroke="#05080a" stroke-width="1.6" stroke-linecap="round" />
-          <circle cx="20" cy="24.5" r="3" fill="#05080a" />
-          <path d="M31,7 L32.3,9.7 L35,11 L32.3,12.3 L31,15 L29.7,12.3 L27,11 L29.7,9.7 Z" fill="#5eead4" />
+          <path d="M8 20L20 9L32 20" stroke="url(#markGrad)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+          <path d="M12 17V29C12 29.5523 12.4477 30 13 30H27C27.5523 30 28 29.5523 28 29V17" stroke="url(#markGrad)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+          <circle cx="24.5" cy="24.5" r="4" stroke="#05080a" stroke-width="4.5" fill="#05080a" />
+          <circle cx="24.5" cy="24.5" r="4" stroke="url(#markGrad)" stroke-width="1.6" fill="none" />
+          <line x1="27.4" y1="27.4" x2="30" y2="30" stroke="url(#markGrad)" stroke-width="1.6" stroke-linecap="round" />
         </svg>
         <h1>Nueva<span class="accent">Casa</span></h1>
       </div>
       <p class="subtitle">Buscador agregado de propiedades</p>
+      <p class="tagline">El mercado <span class="accent">cruzado</span>, no portal por portal.</p>
     </header>
 
     <main>
@@ -221,13 +224,33 @@
       </form>
 
       <section id="estado-portales" class="portales-status"></section>
+
+      <section id="destacados-wrap" class="destacados-wrap" hidden>
+        <h2 class="destacados-titulo">Mejores precios de esta zona</h2>
+        <div id="destacados" class="destacados-row"></div>
+      </section>
+
+      <div id="toggle-vista" class="toggle-vista">
+        <button type="button" class="toggle-vista-btn is-activo" data-vista="lista">Lista</button>
+        <button type="button" class="toggle-vista-btn" data-vista="mapa">Mapa</button>
+      </div>
+
       <section id="resultados" class="resultados-grid"></section>
+      <div id="mapa-nota" class="mapa-nota" hidden></div>
+      <div id="mapa-wrap" class="mapa-wrap" hidden>
+        <div id="mapa" class="mapa-resultados"></div>
+        <div class="toggle-capa">
+          <button type="button" class="toggle-capa-btn is-activo" data-capa="calles">Calles</button>
+          <button type="button" class="toggle-capa-btn" data-capa="satelite">Satelite</button>
+        </div>
+      </div>
       <nav id="paginacion" class="paginacion" hidden></nav>
     </main>
 
     <footer class="site-footer">NuevaCasa &middot; datos de portales de terceros</footer>
   </div>
 
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

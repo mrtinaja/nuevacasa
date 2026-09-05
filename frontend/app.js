@@ -98,11 +98,22 @@ function slugify(texto) {
 const RESULTADOS_POR_PAGINA = 12;
 let propiedadesActuales = [];
 let paginaActual = 1;
+let vistaActual = "lista";
+let mapaLeaflet = null;
+let marcadoresLayer = null;
+let capaCalles = null;
+let capaSatelite = null;
 
 const form = document.getElementById("filtros-form");
 const estadoPortales = document.getElementById("estado-portales");
 const resultadosEl = document.getElementById("resultados");
 const paginacionEl = document.getElementById("paginacion");
+const destacadosWrapEl = document.getElementById("destacados-wrap");
+const destacadosEl = document.getElementById("destacados");
+const toggleVistaEl = document.getElementById("toggle-vista");
+const mapaEl = document.getElementById("mapa");
+const mapaWrapEl = document.getElementById("mapa-wrap");
+const mapaNotaEl = document.getElementById("mapa-nota");
 const toggleMasFiltros = document.getElementById("toggle-mas-filtros");
 const masFiltros = document.getElementById("mas-filtros");
 const provinciaSelect = document.getElementById("provincia");
@@ -305,7 +316,108 @@ function renderPortales(portales) {
 function renderResultados(propiedades) {
   propiedadesActuales = propiedades;
   paginaActual = 1;
-  renderPaginaActual();
+  renderDestacados(propiedades);
+  actualizarVista();
+}
+
+function actualizarVista() {
+  const enMapa = vistaActual === "mapa";
+  resultadosEl.hidden = enMapa;
+  if (enMapa) paginacionEl.hidden = true;
+  mapaWrapEl.hidden = !enMapa;
+  mapaNotaEl.hidden = !enMapa;
+
+  if (enMapa) {
+    // El contenedor recien se destapo (hidden=false) -- esperar un frame
+    // a que el layout se aplique de verdad antes de que Leaflet mida el
+    // tamano, sino puede inicializar con 0x0 y quedar roto.
+    requestAnimationFrame(() => renderMapa(propiedadesActuales));
+  } else {
+    renderPaginaActual();
+  }
+}
+
+toggleVistaEl.addEventListener("click", (ev) => {
+  const boton = ev.target.closest(".toggle-vista-btn");
+  if (!boton || boton.dataset.vista === vistaActual) return;
+  vistaActual = boton.dataset.vista;
+  toggleVistaEl.querySelectorAll(".toggle-vista-btn").forEach((b) => {
+    b.classList.toggle("is-activo", b === boton);
+  });
+  actualizarVista();
+});
+
+document.querySelector(".toggle-capa").addEventListener("click", (ev) => {
+  const boton = ev.target.closest(".toggle-capa-btn");
+  if (!boton || !mapaLeaflet) return;
+  document.querySelectorAll(".toggle-capa-btn").forEach((b) => b.classList.toggle("is-activo", b === boton));
+  if (boton.dataset.capa === "satelite") {
+    mapaLeaflet.removeLayer(capaCalles);
+    capaSatelite.addTo(mapaLeaflet);
+  } else {
+    mapaLeaflet.removeLayer(capaSatelite);
+    capaCalles.addTo(mapaLeaflet);
+  }
+});
+
+function renderMapa(propiedades) {
+  const conUbicacion = propiedades.filter((p) => typeof p.lat === "number" && typeof p.lon === "number");
+
+  mapaNotaEl.textContent = `El mapa muestra ${conUbicacion.length} de ${propiedades.length} avisos -- solo ZonaProp y RE/MAX traen ubicacion exacta.`;
+
+  if (!mapaLeaflet) {
+    mapaLeaflet = L.map(mapaEl);
+
+    // Calles: OpenStreetMap estandar (gratis, sin API key) con un filtro
+    // CSS para que se vea oscuro y combine con el resto del sitio -- los
+    // proveedores de tiles oscuros "gratis" (CARTO) ahora piden API key.
+    capaCalles = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: '&copy; OpenStreetMap contributors',
+      maxZoom: 19,
+      className: "tiles-oscuros",
+    });
+
+    // Satelital: Esri World Imagery, gratis y sin API key -- el
+    // equivalente real y disponible a "vista Google Earth".
+    capaSatelite = L.tileLayer(
+      "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      { attribution: "&copy; Esri", maxZoom: 19 }
+    );
+
+    capaCalles.addTo(mapaLeaflet);
+    marcadoresLayer = L.layerGroup().addTo(mapaLeaflet);
+  }
+
+  marcadoresLayer.clearLayers();
+
+  if (conUbicacion.length === 0) {
+    mapaLeaflet.setView([-34.6037, -58.3816], 12);
+    return;
+  }
+
+  conUbicacion.forEach((p) => {
+    const color = p.buen_precio ? "#fbbf24" : "#5eead4";
+    const marcador = L.circleMarker([p.lat, p.lon], {
+      radius: 7,
+      color,
+      weight: 2,
+      fillColor: color,
+      fillOpacity: 0.6,
+    });
+    const precio = p.precio != null ? `${escapeHtml(p.moneda ?? "")} ${p.precio.toLocaleString("es-AR")}` : "Consultar";
+    marcador.bindPopup(`
+      <div class="popup-mapa">
+        <span class="portal-tag">${escapeHtml(p.portal)}</span>
+        <h4>${escapeHtml(p.titulo)}</h4>
+        <p class="precio">${precio}</p>
+        <a href="${escapeHtml(p.url)}" target="_blank" rel="noopener">Ver aviso &rarr;</a>
+      </div>
+    `);
+    marcadoresLayer.addLayer(marcador);
+  });
+
+  mapaLeaflet.fitBounds(conUbicacion.map((p) => [p.lat, p.lon]), { padding: [30, 30], maxZoom: 15 });
+  setTimeout(() => mapaLeaflet.invalidateSize(), 50);
 }
 
 function renderPaginaActual() {
@@ -372,9 +484,7 @@ function pillsSuperficie(p) {
   return [];
 }
 
-function renderTarjetas(propiedades) {
-  resultadosEl.innerHTML = propiedades
-    .map((p, i) => {
+function tarjetaHTML(p, i) {
       const retraso = Math.min(i, 10) * 40;
       const features = [
         p.ambientes ? `<span>${p.ambientes} amb.</span>` : "",
@@ -425,6 +535,18 @@ function renderTarjetas(propiedades) {
         <div class="features">${features}</div>
       </div>
     </a>`;
-    })
-    .join("");
+}
+
+function renderTarjetas(propiedades) {
+  resultadosEl.innerHTML = propiedades.map(tarjetaHTML).join("");
+}
+
+function renderDestacados(propiedades) {
+  const top4 = propiedades
+    .filter((p) => p.buen_precio && p.precio_m2 != null)
+    .sort((a, b) => a.precio_m2 - b.precio_m2)
+    .slice(0, 4);
+
+  destacadosWrapEl.hidden = top4.length === 0;
+  destacadosEl.innerHTML = top4.map(tarjetaHTML).join("");
 }

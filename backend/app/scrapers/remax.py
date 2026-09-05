@@ -226,6 +226,8 @@ class RemaxScraper(Scraper):
                     superficie_m2=superficie,
                     superficie_cubierta_m2=superficie_cubierta,
                     distancia_general_paz_km=distancia_gral_paz,
+                    lat=lat,
+                    lon=lon,
                     url=f"{self.SITE_URL}/listings/{slug}",
                     imagen_url=self._imagen_url(item),
                 )

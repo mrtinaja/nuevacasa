@@ -216,6 +216,35 @@ los 4 portales de cada busqueda:
   vuelve a buscar lo mismo, no hay forma de detectar una baja que paso
   en el medio. No hay un cron corriendo re-scrapeando solo; el registro
   pasa cada vez que alguien busca.
+- **Mejores precios de esta zona**: fila destacada de hasta 4 avisos
+  (los de menor precio/m² entre los marcados "Buen precio") arriba de
+  los resultados normales, calculada con el mismo cruce de portales.
+
+## UI: mapa y vista de calles/satelite
+
+Ademas de la grilla de tarjetas, los resultados se pueden ver en un
+**mapa** (toggle "Lista"/"Mapa" arriba de los resultados, `frontend/app.js`,
+usa Leaflet). Solo entran al mapa los avisos con coordenadas reales por
+aviso (**ZonaProp** y **RE/MAX** -- ver seccion de distancia a Gral.
+Paz arriba); el resto de los avisos siguen estando en la vista de
+lista, el mapa no los oculta ni los descarta, solo no los puede ubicar.
+
+Dos capas de mapa, ambas gratis y sin API key:
+- **Calles**: tiles estandar de OpenStreetMap con un filtro CSS
+  (`invert` + `hue-rotate`) para que se vea oscuro y combine con el
+  resto del sitio -- los proveedores de tiles oscuros "gratis" (CARTO)
+  pasaron a pedir API key, asi que no se uso ese camino.
+- **Satelite**: Esri World Imagery (imagenes aereas reales, sin key),
+  el equivalente funcional a pedir "una vista tipo Google Earth" sin
+  meterse con las APIs pagas de Google.
+
+**Bug real encontrado y arreglado en el camino**: el atributo HTML
+`hidden` pierde contra cualquier clase que fije su propio `display`
+(ej. `.resultados-grid { display: grid }`) porque tienen la misma
+especificidad y la clase del autor gana por orden de cascada -- asi que
+ocultar la grilla de resultados con `.hidden = true` no hacia nada.
+Se arreglo con una regla global `[hidden] { display: none !important; }`
+cerca del reset de estilos.
 
 ## Como correr
 

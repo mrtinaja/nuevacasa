@@ -21,6 +21,11 @@
 
 * { box-sizing: border-box; }
 
+/* [hidden] pierde contra selectores de clase que fijan su propio
+   "display" (misma especificidad, el autor gana por orden de cascada)
+   -- esta regla asegura que "hidden" siempre gane, sin excepciones. */
+[hidden] { display: none !important; }
+
 html, body {
   height: 100%;
 }
@@ -107,13 +112,14 @@ body {
 
 .logo h1 {
   font-family: "Space Grotesk", "Inter", sans-serif;
-  font-size: 2rem;
+  font-size: 2.5rem;
   font-weight: 700;
   margin: 0;
   letter-spacing: -0.02em;
 }
 
-.logo h1 .accent {
+.logo h1 .accent,
+.tagline .accent {
   background: linear-gradient(120deg, var(--turquoise-bright), var(--turquoise-dim));
   -webkit-background-clip: text;
   background-clip: text;
@@ -122,8 +128,16 @@ body {
 
 .subtitle {
   color: var(--text-dim);
-  margin: 0.35rem 0 0 3.2rem;
+  margin: 0.4rem 0 0 3.6rem;
   font-size: 0.95rem;
+}
+
+.tagline {
+  font-family: "Space Grotesk", sans-serif;
+  font-weight: 600;
+  font-size: 1.15rem;
+  margin: 0.65rem 0 0 3.6rem;
+  color: var(--text);
 }
 
 /* ---------- panel de filtros ---------- */
@@ -395,12 +409,176 @@ input[type="number"] { -moz-appearance: textfield; }
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* ---------- destacados ---------- */
+
+.destacados-wrap {
+  margin: 0 0 1.5rem;
+}
+
+.destacados-titulo {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--warning);
+  margin: 0 0 0.75rem;
+}
+
+.destacados-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+.destacados-row .card-propiedad {
+  border-color: rgba(251, 191, 36, 0.35);
+}
+
+.destacados-row .card-propiedad:hover {
+  box-shadow: 0 16px 32px -16px rgba(251, 191, 36, 0.4);
+}
+
+@media (max-width: 900px) {
+  .destacados-row { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 520px) {
+  .destacados-row { grid-template-columns: 1fr; }
+}
+
+/* ---------- toggle lista/mapa ---------- */
+
+.toggle-vista {
+  display: inline-flex;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  margin: 0 0 1rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+.toggle-vista-btn {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 0.4rem 1rem;
+  border-radius: 999px;
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.toggle-vista-btn.is-activo {
+  background: var(--turquoise-dim);
+  color: var(--turquoise-bright);
+}
+
 /* ---------- resultados ---------- */
 
 .resultados-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 1rem;
+}
+
+.mapa-nota {
+  color: var(--text-faint);
+  font-size: 0.82rem;
+  margin: -0.5rem 0 1rem;
+}
+
+.mapa-wrap {
+  position: relative;
+}
+
+.mapa-resultados {
+  height: 560px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+/* Tiles de OpenStreetMap (claros) invertidos + rotados para que se vean
+   oscuros y combinen con el resto del sitio -- los proveedores de tiles
+   oscuros "gratis" (CARTO) ahora piden API key. */
+.tiles-oscuros {
+  filter: invert(1) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.8);
+}
+
+.toggle-capa {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1000;
+  display: inline-flex;
+  gap: 0.2rem;
+  padding: 0.2rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+}
+
+.toggle-capa-btn {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+.toggle-capa-btn.is-activo {
+  background: var(--turquoise-dim);
+  color: var(--turquoise-bright);
+}
+
+.popup-mapa {
+  font-family: "Inter", sans-serif;
+  min-width: 180px;
+}
+
+.popup-mapa .portal-tag {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--turquoise-bright);
+  margin-bottom: 0.3rem;
+}
+
+.popup-mapa h4 {
+  margin: 0 0 0.3rem;
+  font-size: 0.85rem;
+  line-height: 1.3;
+  color: var(--text);
+}
+
+.popup-mapa .precio {
+  font-family: "Space Grotesk", sans-serif;
+  font-weight: 700;
+  color: var(--turquoise-bright);
+  margin: 0 0 0.4rem;
+}
+
+.popup-mapa a {
+  font-size: 0.78rem;
+  color: var(--turquoise-bright);
+}
+
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  background: var(--bg-elevated);
+  color: var(--text);
+}
+
+.leaflet-popup-content-wrapper {
+  border: 1px solid var(--border-strong);
 }
 
 .sin-resultados {
@@ -658,5 +836,5 @@ input[type="number"] { -moz-appearance: textfield; }
 }
 
 @media (max-width: 560px) {
-  .subtitle { margin-left: 0; }
+  .subtitle, .tagline { margin-left: 0; }
 }

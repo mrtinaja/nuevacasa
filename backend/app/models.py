@@ -89,6 +89,8 @@ class Propiedad(BaseModel):
     dias_desde_publicacion: Optional[int] = None
     distancia_general_paz_km: Optional[float] = None
     distancia_general_paz_aprox: bool = False  # True = centroide del barrio, no del aviso puntual
+    lat: Optional[float] = None  # coordenada real del aviso -- solo ZonaProp y RE/MAX la traen
+    lon: Optional[float] = None
 
     # Calculados centralmente en el orchestrator, cruzando datos de todos
     # los portales de esta busqueda -- ningun portal individual puede
