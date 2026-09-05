@@ -590,6 +590,37 @@ input[type="number"] { -moz-appearance: textfield; }
   color: var(--turquoise-bright);
 }
 
+.toggle-delitos-btn {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  z-index: 1000;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0.35rem 0.7rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  color: var(--text-dim);
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.toggle-delitos-btn.apagado { opacity: 0.5; }
+
+.punto-leyenda {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.punto-leyenda.punto-bajo { background: var(--success); }
+.punto-leyenda.punto-medio { background: var(--warning); }
+.punto-leyenda.punto-alto { background: var(--danger); }
+
 .popup-mapa {
   font-family: "Inter", sans-serif;
   min-width: 180px;

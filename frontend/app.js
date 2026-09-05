@@ -173,6 +173,38 @@ let mapaLeaflet = null;
 let marcadoresLayer = null;
 let capaCalles = null;
 let capaSatelite = null;
+let capaDelitos = null;
+let capaDelitosVisible = true;
+
+// Mismos totales 2024 y niveles que backend/app/delitos.py (SNIC,
+// Ministerio de Seguridad), pero indexados por nombre de partido tal
+// como viene en partidos-delitos.geojson en vez de por slug de
+// ubicacion -- es la misma fuente, solo la llave de busqueda cambia
+// porque el poligono no sabe que slug elegiste, solo su propio nombre.
+const PARTIDOS_NIVEL_DELITOS = {
+  "Avellaneda": { hechos: 4968, nivel: "medio" },
+  "Lanús": { hechos: 7420, nivel: "alto" },
+  "General Alvarado": { hechos: 1034, nivel: "bajo" },
+  "General Pueyrredón": { hechos: 10156, nivel: "alto" },
+  "La Plata": { hechos: 9066, nivel: "alto" },
+  "Tigre": { hechos: 4047, nivel: "medio" },
+  "Lomas de Zamora": { hechos: 7754, nivel: "alto" },
+  "Merlo": { hechos: 6496, nivel: "alto" },
+  "Moreno": { hechos: 6170, nivel: "medio" },
+  "Necochea": { hechos: 1357, nivel: "bajo" },
+  "Pilar": { hechos: 3108, nivel: "medio" },
+  "Quilmes": { hechos: 8762, nivel: "alto" },
+  "San Fernando": { hechos: 1295, nivel: "bajo" },
+  "San Isidro": { hechos: 3559, nivel: "medio" },
+  "Morón": { hechos: 8220, nivel: "alto" },
+  "Vicente López": { hechos: 2705, nivel: "medio" },
+  "La Costa": { hechos: 1918, nivel: "bajo" },
+  "Pinamar": { hechos: 1012, nivel: "bajo" },
+  "Villa Gesell": { hechos: 1299, nivel: "bajo" },
+  "Monte Hermoso": { hechos: 168, nivel: "bajo" },
+  "Ituzaingó": { hechos: 2571, nivel: "medio" },
+};
+const COLOR_NIVEL = { bajo: "#34d399", medio: "#fbbf24", alto: "#fb7185" };
 
 const form = document.getElementById("filtros-form");
 const estadoPortales = document.getElementById("estado-portales");
@@ -419,10 +451,12 @@ function actualizarVista() {
   mapaNotaEl.hidden = !enMapa;
 
   if (enMapa) {
-    // El contenedor recien se destapo (hidden=false) -- esperar un frame
-    // a que el layout se aplique de verdad antes de que Leaflet mida el
-    // tamano, sino puede inicializar con 0x0 y quedar roto.
-    requestAnimationFrame(() => renderMapa(propiedadesActuales));
+    // El contenedor recien se destapo (hidden=false) -- esperar a que el
+    // layout se aplique de verdad antes de que Leaflet mida el tamano,
+    // sino puede inicializar con 0x0 y quedar roto. setTimeout (no
+    // requestAnimationFrame) porque rAF se suspende del todo en pestañas
+    // en segundo plano y el mapa nunca llegaria a inicializarse ahi.
+    setTimeout(() => renderMapa(propiedadesActuales), 0);
   } else {
     renderPaginaActual();
   }
@@ -451,6 +485,45 @@ document.querySelector(".toggle-capa").addEventListener("click", (ev) => {
   }
 });
 
+async function cargarCapaDelitos() {
+  try {
+    const resp = await fetch("partidos-delitos.geojson");
+    const geojson = await resp.json();
+    // Color por ZONA (el partido entero), no por propiedad -- pintar
+    // una propiedad puntual de rojo estigmatizaria ese aviso especifico,
+    // que no es lo que dicen los datos (son delitos del partido entero,
+    // no de esa direccion). Ver backend/app/delitos.py para las
+    // limitaciones reales (cantidad total sin ajustar por poblacion).
+    capaDelitos = L.geoJSON(geojson, {
+      style: (feature) => {
+        const info = PARTIDOS_NIVEL_DELITOS[feature.properties.partido];
+        const color = info ? COLOR_NIVEL[info.nivel] : "#64748b";
+        return { color, weight: 1, fillColor: color, fillOpacity: 0.22 };
+      },
+      onEachFeature: (feature, layer) => {
+        const info = PARTIDOS_NIVEL_DELITOS[feature.properties.partido];
+        if (!info) return;
+        layer.bindTooltip(
+          `${feature.properties.partido}: ${info.hechos.toLocaleString("es-AR")} delitos contra la propiedad (2024, SNIC) -- nivel ${NIVEL_LABEL[info.nivel]}`,
+          { sticky: true }
+        );
+      },
+    });
+    if (capaDelitosVisible) capaDelitos.addTo(mapaLeaflet);
+  } catch (err) {
+    // Si el geojson no carga (red, etc.) el mapa sigue andando sin esta
+    // capa -- no es critico para poder ver los avisos.
+  }
+}
+
+document.getElementById("toggle-delitos").addEventListener("click", () => {
+  capaDelitosVisible = !capaDelitosVisible;
+  document.getElementById("toggle-delitos").classList.toggle("apagado", !capaDelitosVisible);
+  if (!capaDelitos) return;
+  if (capaDelitosVisible) capaDelitos.addTo(mapaLeaflet);
+  else mapaLeaflet.removeLayer(capaDelitos);
+});
+
 function renderMapa(propiedades) {
   const conUbicacion = propiedades.filter((p) => typeof p.lat === "number" && typeof p.lon === "number");
 
@@ -477,6 +550,7 @@ function renderMapa(propiedades) {
 
     capaCalles.addTo(mapaLeaflet);
     marcadoresLayer = L.layerGroup().addTo(mapaLeaflet);
+    cargarCapaDelitos();
   }
 
   marcadoresLayer.clearLayers();

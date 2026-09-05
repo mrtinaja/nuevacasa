@@ -240,6 +240,20 @@ delitos contra la propiedad de 2024 en la zona buscada, fuente **SNIC
 -- Ministerio de Seguridad de la Nacion** (dato oficial, no scrapeado
 de terceros, descargado de https://datos.gob.ar/dataset/seguridad_9).
 
+**En el mapa se pinta la ZONA (poligono del partido), no la
+propiedad**: pintar de rojo el marcador de un aviso puntual
+estigmatizaria ese aviso especifico (y a quien lo publica) con un dato
+que en realidad describe el partido entero, no esa direccion -- ademas
+de ser mal negocio para el producto. La capa "Delitos por partido" en
+el mapa (toggle abajo a la izquierda, se puede apagar) usa el limite
+geografico real de cada partido, descargado del portal de datos
+abiertos de la provincia de Buenos Aires
+(`catalogo.datos.gba.gob.ar/dataset/partidos`, fuente ARBA) y
+simplificado de ~22.700 a ~780 puntos (`frontend/partidos-delitos.geojson`,
+33kb) para que cargue liviano. Los mismos umbrales bajo/medio/alto que
+el badge, coloreando el partido entero con opacidad baja (no tapa el
+mapa de calles/satelite de abajo).
+
 **Cobertura real, no completa a proposito**: solo Buenos Aires
 provincia (partidos + Costa Atlantica) tiene el cruce hecho hoy. CABA
 necesitaria mapear barrio->comuna aparte (el SNIC viene por comuna, no
