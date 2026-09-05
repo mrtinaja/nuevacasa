@@ -237,55 +237,51 @@ a 1 tarjeta por fila, sin scroll horizontal.
 
 ## Deploy del frontend (Netlify u otro hosting estatico)
 
-El frontend es HTML/CSS/JS estatico (`frontend/`), se puede subir tal
-cual a Netlify (drag & drop de la carpeta, o `netlify deploy`). Pero
-sigue llamando a `http://localhost:8000` -- funciona solo si el
-backend esta corriendo en la MISMA maquina donde se abre la pagina
-deployada, no sirve para que otras personas lo usen.
+El frontend es HTML/CSS/JS estatico (`frontend/`), se sube tal cual a
+Netlify (drag & drop de la carpeta -- no esta conectado a GitHub, asi
+que un push a este repo NO redeploya Netlify solo, hay que volver a
+arrastrar la carpeta cada vez que cambia algo en `frontend/`). En
+cualquier dominio que no sea `localhost` llama al backend real en
+Render (ver seccion siguiente).
 
-**Importante**: si abris la version deployada (HTTPS) y te tira
-"Failed to fetch" al buscar, es la politica de navegador "Private
-Network Access" -- una pagina publica (Netlify) no puede pedirle datos
-a `localhost` (red privada) a menos que el backend lo autorice
-explicitamente con un header. Ya esta resuelto en
-`backend/app/main.py` (middleware `permitir_red_privada`), pero
-necesitas el backend corriendo con ese codigo actualizado.
+### Backend real: Render (siempre arriba, sin depender de ninguna PC)
 
-### Backend real: PC local + tunel de ngrok (dominio fijo)
+El backend esta deployado en **Render** (`https://nuevacasa.onrender.com`,
+blueprint en `render.yaml`, plan free) y se **autodeploya solo en cada
+push a `main`** -- no hace falta gatillar nada a mano despues de un
+`git push`.
 
-Para que la version de Netlify funcione para cualquiera (no solo en tu
-maquina), el backend corre en tu PC expuesto via **ngrok**, con un
-**dominio estatico gratis** de la cuenta (`celtic-lapel-smirk.ngrok-free.dev`)
--- a diferencia del tunel de Cloudflare que se uso al principio (un
-"quick tunnel" sin cuenta, con URL aleatoria que cambiaba en cada
-reinicio), este dominio no cambia nunca, asi que `frontend/app.js` no
-necesita tocarse de nuevo por esto.
+Antes de esto el backend corria en la PC del usuario expuesto via
+tunel (primero Cloudflare, despues ngrok), abandonado a proposito por
+depender de que la PC este prendida 24hs. Queda documentado por si
+hace falta volver a esa alternativa:
+- La tarea programada de Windows ("NuevaCasa Backend", Programador de
+  Tareas) que arrancaba el backend + tunel al iniciar sesion esta
+  **deshabilitada** (no borrada -- se puede reactivar desde el
+  Programador de Tareas si hiciera falta).
+- El script `iniciar_backend.bat` sigue en el repo, sirve para correr
+  el backend local a mano (desarrollo), ya no es necesario para que el
+  sitio publico funcione.
 
-- **Arranque automatico**: hay una tarea programada de Windows
-  ("NuevaCasa Backend", `schtasks`/Task Scheduler) que corre
-  `iniciar_backend.bat` al iniciar sesion en Windows -- no hace falta
-  tocar nada al prender la PC, siempre que inicies sesion en tu
-  usuario. Para verla o borrarla: Programador de Tareas de Windows,
-  buscar "NuevaCasa Backend" en la raiz.
-- **Manual**: doble clic en **`iniciar_backend.bat`** (en la raiz del
-  proyecto) reinicia backend + tunel juntos.
-- **ngrok free**: las visitas de navegador sin el header
-  `ngrok-skip-browser-warning` ven una pagina de advertencia HTML en
-  vez de la respuesta real -- por eso el `fetch` en `app.js` manda ese
-  header en todo pedido que no sea a `localhost`.
-
-**Limitaciones a tener en cuenta**:
-- Si la PC se apaga o entra en reposo, el backend y el tunel se caen
-  igual -- necesitas que la PC este prendida (y con la sesion
-  iniciada) para que el sitio funcione. La tarea programada resuelve
-  el "hay que tocar algo a mano" pero no el "la PC tiene que estar
-  prendida".
-- Windows esta configurado para no entrar en reposo mientras la PC
-  esta enchufada (`powercfg /change standby-timeout-ac 0`) -- si es
-  una notebook, conviene activar algun limite de carga de bateria del
-  fabricante para no tenerla siempre al 100%.
-- El authtoken de ngrok esta guardado localmente
-  (`%LOCALAPPDATA%\ngrok\ngrok.yml`), no en el repo.
+**Limitaciones del plan free de Render a tener en cuenta**:
+- **Se "duerme" tras ~15 min sin trafico**: la primera visita despues
+  de un rato de inactividad tarda unos segundos de mas en responder
+  (arranca el contenedor). Visitas siguientes son normales.
+- **Disco no persistente**: el historial de precios (SQLite,
+  `backend/data/historial.db`, ver seccion "Diferenciales del
+  agregador") se resetea cada vez que Render reinicia el servicio
+  (dormido por inactividad, redeploy, etc.) -- en un sitio de poco
+  trafico esto pasa seguido, asi que "Bajo de precio" en la practica
+  va a detectar menos bajas de las que detectaria con un disco
+  persistente. Para que esto persista de verdad hace falta un plan
+  pago de Render con disco, o una base de datos externa.
+- **IP compartida**: Render usa IPs de datacenter compartidas entre
+  muchos servicios, lo que historicamente hizo que ZonaProp/MercadoLibre
+  bloqueen mas seguido que con una IP residencial (la de una PC/hogar
+  real, como la que se usaba con el tunel). Esto no se soluciono, solo
+  se acepto como tradeoff a cambio de no depender de la PC -- si se
+  vuelve un problema recurrente, la alternativa es sumar un proxy
+  residencial pago solo para esos dos portales.
 
 ## Legal
 
