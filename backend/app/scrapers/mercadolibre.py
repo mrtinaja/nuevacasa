@@ -1,5 +1,6 @@
 import json
 import re
+import time
 from datetime import date
 
 import requests
@@ -58,6 +59,14 @@ class MercadoLibreScraper(Scraper):
       el mismo patron que "departamentos"/"casas", pero queda pendiente
       verificarlo.
     - Solo pagina 1 (no se reprodujo la paginacion todavia).
+
+    Mismo endurecimiento anti-bloqueo que Argenprop/ZonaProp: sesion
+    persistente, calentamiento, headers completos, reintento con
+    espera. MercadoLibre redirige con HTTP 200 (no un 403 seco), lo que
+    sugiere un sistema de bot-management mas sofisticado (huella TLS,
+    fingerprinting) que `requests` no puede imitar del todo -- asi que
+    esto probablemente no alcance, pero es la misma mitigacion
+    legitima ya aplicada en los otros dos, sin costo de intentarla.
     """
 
     name = "mercadolibre"
@@ -67,8 +76,21 @@ class MercadoLibreScraper(Scraper):
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
             "(KHTML, like Gecko) Chrome/124.0 Safari/537.36"
         ),
+        "Accept": (
+            "text/html,application/xhtml+xml,application/xml;q=0.9,"
+            "image/avif,image/webp,image/apng,*/*;q=0.8"
+        ),
         "Accept-Language": "es-AR,es;q=0.9",
+        "sec-ch-ua": '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"',
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": '"Windows"',
+        "sec-fetch-dest": "document",
+        "sec-fetch-mode": "navigate",
+        "sec-fetch-site": "same-origin",
+        "Upgrade-Insecure-Requests": "1",
     }
+    REINTENTOS = 1
+    ESPERA_REINTENTO_SEG = 2
     TIPO_SLUGS = {
         "departamento": "departamentos",
         "casa": "casas",
@@ -76,6 +98,46 @@ class MercadoLibreScraper(Scraper):
         "local": "locales",
     }
     OPERACION_SLUGS = {"venta": "venta", "alquiler": "alquiler"}
+
+    def __init__(self):
+        super().__init__()
+        self._session = requests.Session()
+        self._session.headers.update(self.HEADERS)
+        self._calentado = False
+
+    def _calentar_sesion(self) -> None:
+        if self._calentado:
+            return
+        try:
+            self._session.get(f"{self.BASE_URL}/", timeout=15)
+        except requests.RequestException:
+            pass  # si falla el calentamiento seguimos igual con el request real
+        self._calentado = True
+
+    def _obtener(self, url: str) -> requests.Response:
+        intentos = self.REINTENTOS + 1
+        ultima_resp = None
+        for intento in range(intentos):
+            if intento > 0:
+                time.sleep(self.ESPERA_REINTENTO_SEG)
+            try:
+                resp = self._session.get(url, timeout=15)
+            except requests.RequestException as exc:
+                raise ScraperBloqueado(f"error de red contactando MercadoLibre: {exc}") from exc
+            bloqueado_por_status = resp.status_code in (403, 202, 429)
+            bloqueado_por_redirect = "account-verification" in resp.url or "suspicious-traffic" in resp.text
+            if not bloqueado_por_status and not bloqueado_por_redirect:
+                return resp
+            ultima_resp = resp
+        if "account-verification" in ultima_resp.url or "suspicious-traffic" in ultima_resp.text:
+            raise ScraperBloqueado(
+                "MercadoLibre redirigio a una pagina de verificacion de trafico "
+                f"sospechoso (bloqueo anti-bot con HTTP 200, sin ld+json real -- ya se reintento {self.REINTENTOS} vez/veces)"
+            )
+        raise ScraperBloqueado(
+            f"MercadoLibre devolvio HTTP {ultima_resp.status_code} "
+            f"(probable bloqueo anti-bot, reintentar mas tarde -- ya se reintento {self.REINTENTOS} vez/veces)"
+        )
 
     def _build_url(self, filtros: Filtros, ubicacion: str | None = None) -> str:
         tipo = self.TIPO_SLUGS.get(filtros.tipo_propiedad.value, f"{filtros.tipo_propiedad.value}s")
@@ -112,25 +174,9 @@ class MercadoLibreScraper(Scraper):
         return resultados
 
     def _buscar_una_ubicacion(self, filtros: Filtros, ubicacion: str) -> list[Propiedad]:
+        self._calentar_sesion()
         url = self._build_url(filtros, ubicacion)
-        try:
-            resp = requests.get(url, headers=self.HEADERS, timeout=15)
-        except requests.RequestException as exc:
-            raise ScraperBloqueado(f"error de red contactando MercadoLibre: {exc}") from exc
-
-        if resp.status_code in (403, 202, 429):
-            raise ScraperBloqueado(
-                f"MercadoLibre devolvio HTTP {resp.status_code} "
-                "(probable bloqueo anti-bot, reintentar mas tarde)"
-            )
-        if resp.status_code != 200:
-            raise ScraperBloqueado(f"MercadoLibre devolvio HTTP {resp.status_code} inesperado")
-
-        if "account-verification" in resp.url or "suspicious-traffic" in resp.text:
-            raise ScraperBloqueado(
-                "MercadoLibre redirigio a una pagina de verificacion de trafico "
-                "sospechoso (bloqueo anti-bot con HTTP 200, sin ld+json real)"
-            )
+        resp = self._obtener(url)
 
         listings = self._extraer_listings(resp.text)
         resultados: list[Propiedad] = []
