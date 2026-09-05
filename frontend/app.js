@@ -542,11 +542,19 @@ function renderTarjetas(propiedades) {
 }
 
 function renderDestacados(propiedades) {
-  const top4 = propiedades
+  const top3 = propiedades
     .filter((p) => p.buen_precio && p.precio_m2 != null)
     .sort((a, b) => a.precio_m2 - b.precio_m2)
-    .slice(0, 4);
+    .slice(0, 3);
 
-  destacadosWrapEl.hidden = top4.length === 0;
-  destacadosEl.innerHTML = top4.map(tarjetaHTML).join("");
+  destacadosWrapEl.hidden = top3.length === 0;
+  destacadosEl.innerHTML = top3.map(tarjetaHTML).join("");
+  destacadosEl.scrollTo({ left: 0 });
 }
+
+document.querySelector(".destacados-flecha-izq").addEventListener("click", () => {
+  destacadosEl.scrollBy({ left: -300, behavior: "smooth" });
+});
+document.querySelector(".destacados-flecha-der").addEventListener("click", () => {
+  destacadosEl.scrollBy({ left: 300, behavior: "smooth" });
+});
