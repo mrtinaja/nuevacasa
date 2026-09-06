@@ -640,7 +640,7 @@ function renderDelitosZona(delitos) {
   const texto = delitos.es_agregado_provincial
     ? "Incidencia de inseguridad (toda la provincia)"
     : `Incidencia de inseguridad: <strong>${NIVEL_LABEL[delitos.nivel]}</strong>`;
-  delitosZonaEl.title = tooltip;
+  delitosZonaEl.dataset.tooltip = tooltip;
   delitosZonaEl.innerHTML = `
     <span class="punto" aria-hidden="true"></span>
     <span>${texto}</span>
@@ -665,7 +665,7 @@ function renderRiesgoSismico(sismico) {
   const texto = sismico.es_agregado_provincial
     ? `Riesgo sismico (toda la provincia): <strong>${SISMICO_NIVEL_LABEL[sismico.nivel]}</strong>`
     : `Riesgo sismico: <strong>${SISMICO_NIVEL_LABEL[sismico.nivel]}</strong>`;
-  riesgoSismicoEl.title = sismico.es_agregado_provincial ? sismico.nota : SISMICO_TOOLTIP;
+  riesgoSismicoEl.dataset.tooltip = sismico.es_agregado_provincial ? sismico.nota : SISMICO_TOOLTIP;
   riesgoSismicoEl.innerHTML = `
     <span class="punto" aria-hidden="true"></span>
     <span>${texto}</span>
