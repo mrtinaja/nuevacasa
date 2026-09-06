@@ -800,7 +800,12 @@ function renderMapa(propiedades) {
   }
 
   conUbicacion.forEach((p) => {
-    const color = p.buen_precio ? "#fbbf24" : "#5eead4";
+    // Paleta a proposito distinta de COLOR_NIVEL (verde/amarillo/rojo
+    // de la capa de delitos) -- "buen precio" usaba el mismo amarillo
+    // que "nivel medio" de delitos (#fbbf24, el mismo hex), confundia
+    // dos leyendas distintas en el mismo mapa. Precio y delito son
+    // datos independientes, no deberian compartir ningun color.
+    const color = p.buen_precio ? "#2dd4bf" : "#94a3b8";
     const marcador = L.circleMarker([p.lat, p.lon], {
       radius: 7,
       color,

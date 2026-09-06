@@ -999,16 +999,23 @@ input[type="number"]::-webkit-inner-spin-button {
   letter-spacing: 0.01em;
 }
 
+/* Colores a proposito distintos de COLOR_NIVEL (verde/amarillo/rojo,
+   la capa de delitos del mapa) -- "buen precio" y "bajo de precio" son
+   datos sin ninguna relacion con el nivel de inseguridad de la zona,
+   compartir paleta con esa leyenda confundia las dos cosas. Mismo
+   turquesa que el punto del mapa para propiedades con buen precio
+   (frontend/app.js, renderMapa) para que sea el mismo color en toda
+   la app, no solo en el mapa. */
 .card-propiedad .destacado-buen-precio {
-  background: rgba(251, 191, 36, 0.16);
-  color: var(--warning);
-  border: 1px solid rgba(251, 191, 36, 0.4);
+  background: rgba(45, 212, 191, 0.16);
+  color: #2dd4bf;
+  border: 1px solid rgba(45, 212, 191, 0.4);
 }
 
 .card-propiedad .destacado-bajo-precio {
-  background: rgba(52, 211, 153, 0.16);
-  color: var(--success);
-  border: 1px solid rgba(52, 211, 153, 0.4);
+  background: rgba(56, 189, 248, 0.16);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.4);
 }
 
 /* ---------- paginacion ---------- */
