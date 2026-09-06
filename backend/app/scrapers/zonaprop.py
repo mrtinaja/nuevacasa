@@ -10,6 +10,34 @@ from app.models import Filtros, Propiedad
 from app.scrapers.base import Scraper, ScraperBloqueado
 from app.zonas_cardinales import partidos_de_zona
 
+# ZonaProp no tiene una URL propia para "toda la provincia de Buenos
+# Aires": confirmado en vivo que "departamentos-venta-buenos-aires.html"
+# redirige (301) a "departamentos-venta.html", el listado NACIONAL sin
+# ningun filtro de ubicacion -- probamos ademas "provincia-buenos-aires",
+# "gba", "provincia-de-buenos-aires" y "buenos-aires-provincia", todas
+# redirigen igual. A diferencia de MercadoLibre (que si tiene un slug
+# real, "provincia-de-buenos-aires", ver UBICACION_SLUGS en
+# mercadolibre.py), la unica forma real de cubrir la provincia en
+# ZonaProp es pedir partido por partido y juntar, igual que ya se hace
+# con zona-norte/oeste/sur (ver zonas_cardinales.py). Este set es el
+# mismo curado que ya usa el resto de la app (frontend UBICACIONES,
+# delitos.py) para Buenos Aires -- no son los ~135 partidos reales de
+# la provincia, es el subconjunto conocido; sigue siendo mucho mejor
+# que devolver avisos de Rosario o Cordoba mezclados, que es lo que
+# pasaba antes de este fix.
+PARTIDOS_BUENOS_AIRES_TODOS = [
+    # Zona Norte, Oeste, Sur (mismos partidos que ZONAS_CARDINALES).
+    "san-isidro", "vicente-lopez", "tigre", "san-fernando", "pilar", "nordelta",
+    "moron", "ituzaingo", "merlo", "moreno",
+    "quilmes", "avellaneda", "lanus", "lomas-de-zamora", "la-plata",
+    # Costa Atlantica -- un slug representativo por partido real (varias
+    # localidades curadas comparten partido, ej. San Clemente/Las
+    # Toninas/Santa Teresita son todas partido La Costa: no tiene
+    # sentido pedirle a ZonaProp el mismo partido varias veces).
+    "san-clemente-del-tuyu", "pinamar", "villa-gesell", "mar-del-plata",
+    "miramar", "necochea", "monte-hermoso",
+]
+
 
 def _parse_int(valor):
     try:
@@ -235,11 +263,16 @@ class ZonapropScraper(Scraper):
         return url + ".html", amenity_en_url
 
     def search(self, filtros: Filtros) -> list[Propiedad]:
-        partidos = partidos_de_zona(filtros.ubicacion)
+        slug = (filtros.ubicacion or "").strip("/").lower()
+        if slug == "buenos-aires":
+            partidos = PARTIDOS_BUENOS_AIRES_TODOS
+        else:
+            partidos = partidos_de_zona(filtros.ubicacion)
         if not partidos:
             return self._buscar_una_ubicacion(filtros, filtros.ubicacion)
 
-        # Zona cardinal: no hay slug de portal que agrupe varios partidos
+        # Zona cardinal (o "toda Buenos Aires", ver PARTIDOS_BUENOS_AIRES_TODOS
+        # arriba): no hay slug de portal que agrupe varios partidos
         # en un solo pedido, asi que se pide cada uno y se juntan los
         # resultados. Si algunos partidos vienen bloqueados pero otros no,
         # se devuelve lo que se pudo traer -- solo se levanta ScraperBloqueado
