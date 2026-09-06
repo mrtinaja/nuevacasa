@@ -72,12 +72,12 @@
 
           <div class="campo">
             <label for="precio_min">Precio min</label>
-            <input type="number" id="precio_min" name="precio_min" />
+            <input type="text" inputmode="numeric" class="input-precio" id="precio_min" name="precio_min" />
           </div>
 
           <div class="campo">
             <label for="precio_max">Precio max</label>
-            <input type="number" id="precio_max" name="precio_max" />
+            <input type="text" inputmode="numeric" class="input-precio" id="precio_max" name="precio_max" />
           </div>
 
           <div class="campo">
@@ -155,7 +155,7 @@
 
           <div class="campo">
             <label for="expensas_max">Expensas max</label>
-            <input type="number" id="expensas_max" name="expensas_max" />
+            <input type="text" inputmode="numeric" class="input-precio" id="expensas_max" name="expensas_max" />
           </div>
 
           <div class="campo">
@@ -237,8 +237,27 @@
       </section>
 
       <div id="toggle-vista" class="toggle-vista">
-        <button type="button" class="toggle-vista-btn is-activo" data-vista="lista">Lista</button>
-        <button type="button" class="toggle-vista-btn" data-vista="mapa">Mapa</button>
+        <button type="button" class="toggle-vista-btn is-activo" data-vista="lista">
+          <svg class="toggle-vista-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <rect x="4" y="5" width="16" height="2.6" rx="1.3" fill="currentColor" />
+            <rect x="4" y="10.7" width="16" height="2.6" rx="1.3" fill="currentColor" />
+            <rect x="4" y="16.4" width="16" height="2.6" rx="1.3" fill="currentColor" />
+          </svg>
+          <span class="toggle-vista-texto">
+            <span class="toggle-vista-titulo">Lista</span>
+            <span class="toggle-vista-subtitulo">Tarjetas con todos los datos</span>
+          </span>
+        </button>
+        <button type="button" class="toggle-vista-btn toggle-vista-btn-mapa" data-vista="mapa">
+          <svg class="toggle-vista-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M9 4.5L4.3 6.3v13.2L9 17.7l6 2.1 4.7-1.8V4.8L15 6.6l-6-2.1z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
+            <path d="M9 4.5v13.2M15 6.6v13.2" stroke="currentColor" stroke-width="1.6" />
+          </svg>
+          <span class="toggle-vista-texto">
+            <span class="toggle-vista-titulo">Mapa</span>
+            <span class="toggle-vista-subtitulo">Satelite y zonas de riesgo</span>
+          </span>
+        </button>
       </div>
 
       <section id="resultados" class="resultados-grid"></section>
@@ -249,9 +268,9 @@
           <button type="button" class="toggle-capa-btn is-activo" data-capa="calles">Calles</button>
           <button type="button" class="toggle-capa-btn" data-capa="satelite">Satelite</button>
         </div>
-        <button type="button" id="toggle-delitos" class="toggle-delitos-btn" title="Mostrar/ocultar el color de delitos por partido">
+        <button type="button" id="toggle-delitos" class="toggle-delitos-btn" title="Mostrar/ocultar el color de delitos por zona">
           <span class="punto-leyenda punto-bajo"></span><span class="punto-leyenda punto-medio"></span><span class="punto-leyenda punto-alto"></span>
-          Delitos por partido
+          Delitos por zona
         </button>
       </div>
       <nav id="paginacion" class="paginacion" hidden></nav>

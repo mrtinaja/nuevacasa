@@ -213,15 +213,6 @@ input, select {
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-select {
-  appearance: none;
-  background-image: linear-gradient(45deg, transparent 50%, var(--turquoise) 50%), linear-gradient(135deg, var(--turquoise) 50%, transparent 50%);
-  background-position: calc(100% - 16px) center, calc(100% - 11px) center;
-  background-size: 5px 5px, 5px 5px;
-  background-repeat: no-repeat;
-  padding-right: 2rem;
-}
-
 input::placeholder { color: var(--text-faint); }
 
 input:focus, select:focus {
@@ -230,7 +221,108 @@ input:focus, select:focus {
   box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.18);
 }
 
+/* Ocultar las flechitas nativas de los inputs numericos -- la de Firefox
+   ya estaba cubierta (-moz-appearance), pero faltaba la de Chrome/Edge/
+   Safari (::-webkit-*-spin-button), que se renderiza como una cajita
+   blanca sin ningun estilo nuestro, rompiendo el tema oscuro. */
 input[type="number"] { -moz-appearance: textfield; }
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* ---------- dropdown propio (reemplaza <select> nativo) ---------- */
+/* El resaltado de la lista nativa de un <select> es un control del
+   sistema operativo (en Windows/Chrome, una lista nativa que ignora
+   accent-color) -- no hay forma de pintarlo turquesa via CSS. La unica
+   forma confiable es esta: el <select> real sigue en el DOM (oculto,
+   sigue viajando en el FormData del form sin tocar nada del JS de
+   busqueda) y se dibuja un trigger + listbox propios encima, manejados
+   en crearSelectPersonalizado() (frontend/app.js). */
+
+.select-custom {
+  position: relative;
+}
+
+.select-custom select {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.select-trigger {
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  font-size: 0.92rem;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.55rem 0.7rem;
+  padding-right: 2rem;
+  cursor: pointer;
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--turquoise) 50%), linear-gradient(135deg, var(--turquoise) 50%, transparent 50%);
+  background-position: calc(100% - 16px) center, calc(100% - 11px) center;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.select-trigger:focus-visible,
+.select-custom.abierto .select-trigger {
+  outline: none;
+  border-color: var(--turquoise);
+  box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.18);
+}
+
+.select-listbox {
+  position: absolute;
+  z-index: 60;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 280px;
+  overflow-y: auto;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  box-shadow: 0 16px 36px -10px rgba(0, 0, 0, 0.55);
+  padding: 0.3rem;
+  margin: 0;
+  list-style: none;
+}
+
+.select-optgroup-label {
+  padding: 0.5rem 0.6rem 0.25rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-faint);
+}
+
+.select-option {
+  padding: 0.5rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.88rem;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.select-option.resaltada {
+  background: var(--turquoise-dim);
+  color: var(--text);
+}
+
+.select-option.seleccionada {
+  font-weight: 700;
+}
 
 /* ---------- toggle "mas filtros" ---------- */
 
@@ -422,6 +514,7 @@ input[type="number"] { -moz-appearance: textfield; }
   font-size: 0.82rem;
   color: var(--text-dim);
   margin: 0 0 1.5rem;
+  cursor: help;
 }
 
 .delitos-zona .punto {
@@ -499,33 +592,79 @@ input[type="number"] { -moz-appearance: textfield; }
 }
 
 /* ---------- toggle lista/mapa ---------- */
+/* Dos bloques grandes en vez de una pildora chica: la opcion "Mapa" trae
+   satelite + zonas de riesgo (bastante mas contenido que una tarjeta de
+   lista), asi que necesita el mismo peso visual que "Lista", no una
+   pastillita al costado que pasa desapercibida. */
 
 .toggle-vista {
-  display: inline-flex;
-  gap: 0.25rem;
-  padding: 0.25rem;
-  margin: 0 0 1rem;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: 999px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin: 0 0 1.5rem;
 }
 
 .toggle-vista-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
   font-family: "Space Grotesk", sans-serif;
-  font-size: 0.82rem;
-  font-weight: 600;
-  padding: 0.4rem 1rem;
-  border-radius: 999px;
-  border: none;
-  background: transparent;
+  text-align: left;
+  padding: 0.9rem 1.1rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
   color: var(--text-dim);
   cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+
+.toggle-vista-btn:hover {
+  border-color: var(--border-strong);
+  transform: translateY(-1px);
+}
+
+.toggle-vista-icon {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+}
+
+.toggle-vista-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.toggle-vista-titulo {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.toggle-vista-subtitulo {
+  font-size: 0.74rem;
+  font-weight: 500;
+  color: var(--text-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .toggle-vista-btn.is-activo {
   background: var(--turquoise-dim);
-  color: var(--turquoise-bright);
+  border-color: var(--turquoise);
+  box-shadow: var(--shadow-glow);
+}
+
+.toggle-vista-btn.is-activo .toggle-vista-titulo { color: var(--text); }
+.toggle-vista-btn.is-activo .toggle-vista-subtitulo { color: var(--text); opacity: 0.75; }
+.toggle-vista-btn.is-activo .toggle-vista-icon { color: var(--text); }
+
+@media (max-width: 560px) {
+  .toggle-vista { grid-template-columns: 1fr; }
+  .toggle-vista-subtitulo { white-space: normal; }
 }
 
 /* ---------- resultados ---------- */
@@ -547,10 +686,18 @@ input[type="number"] { -moz-appearance: textfield; }
 }
 
 .mapa-resultados {
-  height: 560px;
+  height: 680px;
   border-radius: var(--radius);
   border: 1px solid var(--border);
   overflow: hidden;
+}
+
+@media (max-width: 900px) {
+  .mapa-resultados { height: 520px; }
+}
+
+@media (max-width: 560px) {
+  .mapa-resultados { height: 420px; }
 }
 
 /* Tiles de OpenStreetMap (claros) invertidos + rotados para que se vean

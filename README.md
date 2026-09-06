@@ -70,6 +70,45 @@ Limitaciones conocidas:
   `departamentos`/`casas`, sin verificar.
 - Solo pagina 1, igual que los otros portales.
 
+**Bug encontrado y arreglado (2026-09-05)**: la opcion "Toda la
+provincia" de Buenos Aires manda `ubicacion=buenos-aires`, pero
+MercadoLibre no reconoce ese slug como ubicacion propia -- devuelve su
+pagina real de "no encontramos resultados" (HTTP 200, no es bloqueo
+anti-bot, es un genuino 0 resultados). El slug real que usa el sitio
+para la provincia entera es `provincia-de-buenos-aires` (confirmado:
+trae listings reales). Los partidos individuales (`tigre`, `la-plata`,
+etc.) no tenian este problema porque MercadoLibre les hace un 301 a su
+URL canonica con prefijo de subregion (`bsas-gba-norte/tigre`,
+`buenos-aires-interior/la-plata`) y `requests` sigue redirects solo --
+"buenos-aires" era el unico caso sin ese redirect. Fix: `UBICACION_SLUGS`
+en `backend/app/scrapers/mercadolibre.py` mapea ese slug puntual antes
+de armar la URL. Las otras 16 opciones "Toda la provincia" (Cordoba,
+Santa Fe, etc.) no se revisaron todavia -- podrian tener el mismo
+problema, queda pendiente confirmar caso por caso.
+
+**Bug mas grave encontrado y arreglado (2026-09-06)**: para las
+capitales de provincia cuyo nombre de ciudad es igual al de la
+provincia (Salta, Corrientes, Catamarca, Formosa, La Rioja, San Luis),
+el slug `<provincia>-capital` que arma el resto de la app **no da la
+pagina de "sin resultados"** (eso se detecta bien) -- MercadoLibre lo
+interpreta como texto libre y devuelve avisos de temas sin relacion
+(deptos en Capital Federal ubicados en la calle "Salta", en la calle
+"Corrientes", etc.) con HTTP 200 y ld+json valido, indistinguible de un
+resultado real. Esto ya estaba pasando en produccion con
+`salta-capital` y `corrientes-capital` desde que se agregaron esas
+provincias, sin que nadie lo notara -- se encontro al verificar los
+slugs de las 7 provincias nuevas de esta misma fecha. El slug real de
+ML para estos 6 casos es una ruta anidada `provincia/ciudad` (mismo
+patron que Buenos Aires con `bsas-gba-norte/tigre`, pero sin redirect
+automatico -- hay que armarla a mano): `salta/salta`,
+`corrientes/corrientes`, `formosa/formosa`, `la-rioja/la-rioja`,
+`san-luis/san-luis`. Catamarca no tiene este problema con su nombre
+completo oficial (`san-fernando-del-valle-de-catamarca`, confirmado con
+ld+json real), asi que se uso ese en vez de una ruta anidada. Los 6
+casos ya estan en `UBICACION_SLUGS`, verificados en vivo por
+`addressLocality` de cada resultado (no solo por "hay resultados", que
+es justamente lo que fallaba antes).
+
 ## Paginacion
 
 El frontend pagina los resultados ya combinados de todos los portales (12
@@ -101,9 +140,11 @@ opcion).
 Ademas de las 5 provincias originales (Capital Federal, Buenos Aires,
 Cordoba, Santa Fe, Mendoza), se sumaron **Tucuman, Entre Rios, Salta,
 Misiones, Chaco, Corrientes, Santiago del Estero, San Juan, Jujuy, Rio
-Negro, Neuquen y Chubut** (17 en total) -- Rio Negro y Chubut incluyen
-sus localidades costeras patagonicas (Las Grutas, Puerto Madryn,
-Rawson). Cada una lista las ciudades/departamentos mas conocidos (no
+Negro, Neuquen, Chubut, Catamarca, Formosa, La Pampa, La Rioja, San
+Luis, Santa Cruz y Tierra del Fuego** (24 en total -- **las 23
+provincias + CABA, el pais entero**) -- Rio Negro y Chubut incluyen sus
+localidades costeras patagonicas (Las Grutas, Puerto Madryn, Rawson).
+Cada una lista las ciudades/departamentos mas conocidos (no
 exhaustivo). El slug que se manda es el nombre pelado, sin prefijo de
 provincia (ej. `palermo`, `la-plata`), confirmado en vivo para
 Capital Federal:
@@ -120,6 +161,22 @@ Capital Federal:
 - **Argenprop**: mismo patron de slug pelado que los demas, pero no se
   pudo confirmar en vivo (viene bloqueado por el anti-bot desde hace
   rato). Presumiblemente funciona igual, sin verificar.
+
+**OJO -- las 7 provincias nuevas (2026-09-06) no se pudieron verificar
+en vivo contra ZonaProp/Argenprop/MercadoLibre**: se intento probar los
+slugs de las ciudades nuevas (`catamarca-capital`, `santa-rosa`,
+`ushuaia`, etc.) contra ZonaProp y dieron **404** (no 403) -- distinto
+del bloqueo anti-bot habitual, podria ser que esos slugs puntuales no
+son los que usa el portal de verdad. No se pudo insistir para
+confirmarlo porque las pruebas dispararon el bloqueo anti-bot incluso
+en slugs YA CONFIRMADOS que veniamos usando hace rato (`cordoba-capital`
+tambien empezo a dar 403 a mitad de la prueba), asi que no hay forma
+confiable de distinguir "slug malo" de "bloqueado" en este momento sin
+reintentar mas tarde. **RE/MAX si va a funcionar seguro** para estas 7
+provincias nuevas porque no depende de un slug de portal (matchea texto
+libre contra `geoLabel`/`displayAddress`, ver mas abajo). Si al usarlas
+ZonaProp/Argenprop/MercadoLibre no devuelven nada, revisar primero si
+el slug de la ciudad es el correcto antes de asumir que es anti-bot.
 
 **Busqueda por zona cardinal** (`zona-norte`/`zona-oeste`/`zona-sur`):
 no hay un slug de portal que agrupe varios partidos en un solo pedido,
@@ -217,6 +274,14 @@ los 4 portales de cada busqueda:
   muestra la mediana no dice mucho). No es una tasacion ni un "precio
   de mercado" objetivo -- es relativo a lo que trajo esa busqueda
   puntual.
+  **Bug encontrado y arreglado (2026-09-06)**: un aviso con `precio=0`
+  (dato mal cargado de origen, visto en vivo en un aviso real de
+  ZonaProp) pasaba el chequeo `precio is not None` y calculaba
+  `precio_m2 = 0`, el minimo matematicamente posible -- siempre ganaba
+  "Mejores precios de esta zona" sin importar la mediana, mostrando un
+  aviso en USD 0 como si fuera la mejor oportunidad. Cambiado a
+  `if p.precio and ...` (chequeo de verdad, no de `None`), que descarta
+  0 igual que None.
 - **Historial de precios / "Bajo de precio"** (`backend/app/historial.py`):
   cada busqueda registra el precio de cada aviso en un SQLite local
   (`backend/data/historial.db`, se crea solo, gitignored). Si en una
@@ -234,34 +299,101 @@ los 4 portales de cada busqueda:
 
 ## Delitos contra la propiedad por zona (`backend/app/delitos.py`)
 
-Badge de color mostrado arriba de los resultados con la cantidad de
-delitos contra la propiedad de 2024 en la zona buscada, fuente **SNIC
-(Sistema Nacional de Informacion Criminal), Sistema de Alerta Temprana
--- Ministerio de Seguridad de la Nacion** (dato oficial, no scrapeado
-de terceros, descargado de https://datos.gob.ar/dataset/seguridad_9).
+Badge de color mostrado arriba de los resultados con el **nivel de
+incidencia** (Baja/Media/Alta) de delitos contra la propiedad de 2024
+en la zona buscada, fuente **SNIC (Sistema Nacional de Informacion
+Criminal), Sistema de Alerta Temprana -- Ministerio de Seguridad de la
+Nacion** (dato oficial, no scrapeado de terceros, descargado de
+https://datos.gob.ar/dataset/seguridad_9). El badge y el tooltip del
+mapa muestran solo el nivel cualitativo, no la cantidad cruda de
+hechos -- para alguien buscando comprar/alquilar un numero de 4-5
+cifras es ruido, no informacion util; el `hechos_2024` sigue viajando
+en la respuesta de la API por si un cliente futuro lo necesita, solo
+se dejo de mostrar en la UI.
 
-**En el mapa se pinta la ZONA (poligono del partido), no la
-propiedad**: pintar de rojo el marcador de un aviso puntual
+**En el mapa se pinta la ZONA (poligono del partido/comuna/departamento),
+no la propiedad**: pintar de rojo el marcador de un aviso puntual
 estigmatizaria ese aviso especifico (y a quien lo publica) con un dato
-que en realidad describe el partido entero, no esa direccion -- ademas
-de ser mal negocio para el producto. La capa "Delitos por partido" en
-el mapa (toggle abajo a la izquierda, se puede apagar) usa el limite
-geografico real de cada partido, descargado del portal de datos
-abiertos de la provincia de Buenos Aires
-(`catalogo.datos.gba.gob.ar/dataset/partidos`, fuente ARBA) y
-simplificado de ~22.700 a ~780 puntos (`frontend/partidos-delitos.geojson`,
-33kb) para que cargue liviano. Los mismos umbrales bajo/medio/alto que
-el badge, coloreando el partido entero con opacidad baja (no tapa el
-mapa de calles/satelite de abajo).
+que en realidad describe la zona entera, no esa direccion -- ademas de
+ser mal negocio para el producto. La capa "Delitos por zona" en el mapa
+(toggle abajo a la izquierda, se puede apagar) cubre **el pais entero,
+las 24 provincias curadas (las 23 + CABA)**, armada con TRES fuentes de
+limites geograficos porque cada nivel administrativo se llama distinto:
 
-**Ojo, dos coberturas distintas**: el **badge de texto** (arriba de los
-resultados) tiene dato para las 17 provincias curadas. La **capa de
-poligonos coloreados en el mapa** todavia es solo Buenos Aires
-provincia -- para las demas provincias haria falta bajar y simplificar
-sus limites geograficos tambien (mismo proceso, mas trabajo de datos,
-queda pendiente).
+- **Buenos Aires, los 135 partidos** (no solo los 21 curados como
+  opciones de busqueda -- de ahi surgio un pedido del usuario al ver
+  zonas grises en el mapa): limites bajados del portal de datos
+  abiertos de la provincia (`catalogo.datos.gba.gob.ar/dataset/partidos`,
+  fuente ARBA, 143 features reales -- incluye islas de recreo
+  administrativamente separadas del continente, ej. "Islas Tigre") y
+  simplificados de ~360.000 a ~12.000 puntos
+  (`frontend/partidos-delitos.geojson`, 260kb).
+- **CABA, las 15 comunas oficiales** (Ley 1777): descargado del portal
+  de datos abiertos de la Ciudad (`data.buenosaires.gob.ar/dataset/comunas`)
+  y simplificado de ~12.700 a ~440 puntos
+  (`frontend/comunas-delitos.geojson`, 19kb).
+- **Las otras 22 provincias curadas, por departamento**: en vez de
+  buscar el portal de datos abiertos de cada provincia una por una,
+  se uso la capa nacional oficial del **IGN** (Instituto Geografico
+  Nacional) -- un unico WFS con los 529 departamentos de TODO el pais
+  (`wms.ign.gob.ar/geoserver`, capa `ign:departamento`). Se filtro a
+  los departamentos de esas 22 provincias (376 features, incluye las 15
+  del primer armado mas Catamarca/Formosa/La Pampa/La Rioja/San
+  Luis/Santa Cruz/Tierra del Fuego agregadas despues) y se
+  simplificaron a ~16.000 puntos (`frontend/departamentos-delitos.geojson`,
+  520kb). El cruce con el SNIC fue por **codigo INDEC** (`in1` del IGN
+  = `departamento_id` del SNIC, ej. "14042") con **fallback por nombre**
+  cuando el codigo no matchea (le paso a Tierra del Fuego: IGN numera
+  Ushuaia como "94015" y Rio Grande como "94008", el SNIC los tiene como
+  "94014"/"94007" -- se matcheo por nombre normalizado dentro de la
+  misma provincia en esos 2 casos). De 378 departamentos solo Gastre
+  (Chubut, sin dato SNIC 2024) y las dos entradas de soberania de
+  Tierra del Fuego (Islas del Atlantico Sur, Antartida Argentina --
+  sin poblacion, logicamente sin hechos) quedaron sin colorear en vez
+  de inventar un numero. **CABA y Buenos Aires NO se rehicieron con
+  esta fuente nacional** porque el IGN numera las comunas de CABA
+  distinto al SNIC de forma mas generalizada (haria falta fallback por
+  nombre en las 15) y porque las capas propias de ARBA/CABA ya estaban
+  armadas y verificadas -- se dejaron como estaban.
 
-**Cobertura del badge**: las 17 provincias curadas (~157 localidades) tienen el
+Las tres capas se cargan juntas y se agrupan en un solo layer para que
+el toggle las prenda/apague en conjunto -- cada una con su propio
+try/catch (`cargarCapaZona` en `frontend/app.js`), asi si un archivo no
+esta deployado todavia (ej. recien agregado) las otras dos se muestran
+igual en vez de perderse las tres. Mismos umbrales bajo/medio/alto que
+el badge, coloreando la zona entera con opacidad baja (no tapa el mapa
+de calles/satelite de abajo). Las 3 categorias de color son siempre las
+mismas -- verde (bajo), amarillo (medio), rojo (alto), `COLOR_NIVEL` en
+`frontend/app.js`. Ya no deberia aparecer gris en ningun lugar del pais
+que tenga dato SNIC 2024 (las excepciones de arriba son casos
+genuinamente sin dato, no huecos de cobertura).
+
+**El nivel viene horneado en el geojson, no en una tabla aparte**: cada
+feature de los tres `.geojson` ya trae `properties.hechos` y
+`properties.nivel` calculados. Antes existian tablas hardcodeadas en
+`frontend/app.js` (`PARTIDOS_NIVEL_DELITOS`/`COMUNAS_NIVEL_DELITOS`)
+que se desincronizaron una vez de los cortes reales de
+`backend/app/delitos.py` y coloreaton mal 3 partidos (Merlo, Vicente
+Lopez, Ituzaingo) hasta que se detecto y corrigio -- se elimino esa
+clase de bug generando los niveles una sola vez, con un script one-off
+(no versionado, se re-corre a mano si hace falta regenerar), usando los
+mismos cortes que el backend (ver `_CORTE_BAJO`/`_CORTE_MEDIO` en
+`backend/app/delitos.py`, se recalcularon de 2843/6866 a 2571/6794 al
+sumar las 13 localidades nuevas de las 7 provincias de 2026-09-06).
+**Si se recalculan esos cortes en `delitos.py` hay que volver a correr
+el script y sobreescribir los tres `.geojson`** -- ya no hay una tabla
+en `app.js` que se pueda olvidar actualizar, pero los archivos si hay
+que regenerarlos a mano.
+
+**Ojo, misma cobertura ahora**: el **badge de texto** (arriba de los
+resultados) y la **capa de poligonos coloreados en el mapa** cubren las
+mismas 24 provincias curadas -- el badge a nivel de localidad puntual,
+el mapa a nivel de partido/comuna/departamento completo (una escala mas
+grande, por eso puede no coincidir 1 a 1 con lo que dice el badge para
+una ciudad chica dentro de un departamento grande). Con esto la app
+cubre las 23 provincias + CABA, el pais entero.
+
+**Cobertura del badge**: las 24 provincias curadas (~153 localidades) tienen el
 cruce hecho. CABA usa el mapeo oficial barrio->comuna (Ley 1777, el
 SNIC viene por comuna, no por barrio) -- varios barrios de la misma
 comuna muestran el mismo numero. "Barrio Norte" (no es una comuna

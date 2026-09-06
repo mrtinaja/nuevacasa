@@ -139,10 +139,49 @@ class MercadoLibreScraper(Scraper):
             f"(probable bloqueo anti-bot, reintentar mas tarde -- ya se reintento {self.REINTENTOS} vez/veces)"
         )
 
+    # MercadoLibre no reconoce "buenos-aires" (el slug que usa el resto de
+    # la app para "toda la provincia") como ubicacion propia -- devuelve su
+    # pagina real de "no encontramos resultados" (200 OK, no es bloqueo).
+    # Su slug real para la provincia entera es "provincia-de-buenos-aires"
+    # (confirmado: trae listings reales via ld+json). Los partidos
+    # individuales (ej. "tigre", "la-plata") SI funcionan porque ML les
+    # hace un 301 a su URL canonica con prefijo de subregion
+    # (bsas-gba-norte/tigre, buenos-aires-interior/la-plata) y `requests`
+    # sigue redirects solo; este alias es la unica ubicacion que no tiene
+    # ese redirect y necesita mapeo manual.
+    #
+    # Bug distinto y mas grave encontrado el 2026-09-06: para las
+    # capitales de provincia cuyo nombre de ciudad es IGUAL al de la
+    # provincia (Salta, Corrientes, Catamarca, Formosa, La Rioja, San
+    # Luis), el slug "<provincia>-capital" que usa el resto de la app
+    # NO es una ubicacion real de ML -- en vez de la pagina de "sin
+    # resultados" (que si detectamos como bloqueo/vacio en otros casos),
+    # ML lo interpreta como texto libre y devuelve avisos de temas no
+    # relacionados (CABA en la calle "Salta", en la calle "Corrientes",
+    # etc.) con HTTP 200 y ld+json valido -- se ve como un resultado
+    # real pero es completamente erroneo, mas grave que devolver vacio.
+    # La ubicacion real de ML para estas es una ruta anidada
+    # "provincia/ciudad" (mismo patron que Buenos Aires con
+    # "bsas-gba-norte/tigre", pero sin redirect automatico -- hay que
+    # armar la ruta a mano). Confirmado en vivo con ld+json real
+    # (addressLocality = la ciudad correcta) para las 6.
+    # "San Fernando del Valle de Catamarca" no tiene este problema
+    # porque su nombre real no es igual al de la provincia.
+    UBICACION_SLUGS = {
+        "buenos-aires": "provincia-de-buenos-aires",
+        "salta-capital": "salta/salta",
+        "corrientes-capital": "corrientes/corrientes",
+        "catamarca-capital": "san-fernando-del-valle-de-catamarca",
+        "formosa-capital": "formosa/formosa",
+        "la-rioja-capital": "la-rioja/la-rioja",
+        "san-luis-capital": "san-luis/san-luis",
+    }
+
     def _build_url(self, filtros: Filtros, ubicacion: str | None = None) -> str:
         tipo = self.TIPO_SLUGS.get(filtros.tipo_propiedad.value, f"{filtros.tipo_propiedad.value}s")
         operacion = self.OPERACION_SLUGS.get(filtros.operacion.value, filtros.operacion.value)
         ubicacion = (ubicacion if ubicacion is not None else filtros.ubicacion).strip("/").lower() or "capital-federal"
+        ubicacion = self.UBICACION_SLUGS.get(ubicacion, ubicacion)
         return f"{self.BASE_URL}/{tipo}/{operacion}/{ubicacion}/"
 
     def _extraer_listings(self, html: str) -> list[dict]:

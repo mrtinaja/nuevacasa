@@ -24,7 +24,12 @@ def marcar_buen_precio(propiedades: list[Propiedad]) -> None:
     la mediana de precio/m2 de su grupo (agrupado por moneda, ya que
     comparar USD contra ARS no tiene sentido)."""
     for p in propiedades:
-        if p.precio is not None and p.superficie_m2:
+        # `p.precio` truthy descarta None Y 0 -- un precio en $0 es un
+        # dato mal cargado del portal (visto en vivo: un aviso de
+        # ZonaProp), no una oportunidad real, y si se dejara pasar
+        # precio_m2 daria 0, el minimo posible, ganando "mejor precio"
+        # siempre sin importar la mediana.
+        if p.precio and p.superficie_m2:
             p.precio_m2 = round(p.precio / p.superficie_m2, 2)
 
     por_moneda: dict[str, list[Propiedad]] = {}

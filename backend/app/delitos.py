@@ -30,7 +30,7 @@ automotores y motos, extorsiones) para el anio 2024 completo.
   por tener mas gente, no necesariamente por ser "mas peligrosa" por
   habitante.
 - Es un solo anio (2024), no una tendencia.
-- Los niveles bajo/medio/alto son terciles calculados sobre las ~140
+- Los niveles bajo/medio/alto son terciles calculados sobre las ~153
   localidades individuales cargadas hoy (no un estandar externo ni una
   escala de riesgo oficial) -- si se agregan mas localidades convendria
   recalcularlos.
@@ -106,6 +106,12 @@ _OTRAS_LOCALIDADES = {
     # lleva prefijo de provincia asi que no se puede saber cual de las
     # dos referencia, y mostrar cualquiera de los dos numeros seria
     # potencialmente el equivocado.
+    "catamarca-capital": 5900, "formosa-capital": 5687, "clorinda": 1854,
+    "santa-rosa": 2346, "general-pico": 642,
+    "la-rioja-capital": 3498, "chilecito": 430,
+    "san-luis-capital": 4095, "villa-mercedes": 1529,
+    "rio-gallegos": 1869, "caleta-olivia": 2837,
+    "ushuaia": 594, "rio-grande": 1021,
 }
 
 # "Toda la provincia": suma de TODOS los departamentos de esa provincia
@@ -128,6 +134,13 @@ _PROVINCIAS_ENTERAS = {
     "rio-negro": 13830,
     "neuquen": 14518,
     "chubut": 9153,
+    "catamarca": 8619,
+    "formosa": 10132,
+    "la-pampa": 4003,
+    "la-rioja": 4633,
+    "san-luis": 6511,
+    "santa-cruz": 5544,
+    "tierra-del-fuego": 1714,
 }
 
 HECHOS_2024_POR_UBICACION: dict[str, int] = {
@@ -137,10 +150,13 @@ HECHOS_2024_POR_UBICACION: dict[str, int] = {
     **_PROVINCIAS_ENTERAS,
 }
 
-# Terciles calculados sobre las ~140 localidades individuales (sin
+# Terciles calculados sobre las ~153 localidades individuales (sin
 # contar los agregados de "toda la provincia", que son de otra escala).
-_CORTE_BAJO = 2843
-_CORTE_MEDIO = 6866
+# Metodo: ordenar todos los valores y tomar los indices n//3 y 2*n//3
+# (terciles por posicion, no percentil interpolado) -- se recalculan
+# cada vez que se agregan localidades nuevas.
+_CORTE_BAJO = 2571
+_CORTE_MEDIO = 6794
 
 
 def info_delitos(ubicacion_slug: str) -> dict | None:
