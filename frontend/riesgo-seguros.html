@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>NuevaCasa · Riesgo geografico para aseguradoras</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #05080a;
+    --panel: #0d1418;
+    --border: #1c262b;
+    --text: #e7f1f0;
+    --muted: #8ba3a0;
+    --accent: #5eead4;
+    --accent-2: #0891b2;
+    --bajo: #34d399;
+    --medio: #fbbf24;
+    --alto: #f87171;
+    --sin-dato: #4b5a5f;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Inter", system-ui, sans-serif;
+    padding: 2rem 1.25rem 4rem;
+  }
+  .shell { max-width: 760px; margin: 0 auto; }
+  h1 {
+    font-family: "Space Grotesk", sans-serif;
+    font-size: 1.6rem;
+    margin: 0 0 0.35rem;
+  }
+  h1 .accent { color: var(--accent); }
+  .subtitle { color: var(--muted); margin: 0 0 0.25rem; }
+  .tag {
+    display: inline-block;
+    margin: 0.75rem 0 1.75rem;
+    padding: 0.3rem 0.7rem;
+    border: 1px solid var(--accent-2);
+    border-radius: 999px;
+    font-size: 0.78rem;
+    color: var(--accent);
+    letter-spacing: 0.02em;
+  }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.25rem;
+    margin-bottom: 1.25rem;
+  }
+  label { display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 0.4rem; }
+  select, button {
+    width: 100%;
+    padding: 0.7rem 0.85rem;
+    border-radius: 9px;
+    border: 1px solid var(--border);
+    background: #0a1114;
+    color: var(--text);
+    font-size: 0.95rem;
+    font-family: inherit;
+  }
+  button {
+    margin-top: 0.9rem;
+    background: linear-gradient(120deg, var(--accent), var(--accent-2));
+    color: #05080a;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+  }
+  button:disabled { opacity: 0.6; cursor: default; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1rem; }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.1rem;
+  }
+  .card h3 { margin: 0 0 0.6rem; font-size: 0.95rem; color: var(--muted); font-weight: 500; }
+  .badge {
+    display: inline-block;
+    padding: 0.25rem 0.65rem;
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: capitalize;
+  }
+  .badge.bajo, .badge.reducida, .badge.muy_reducida { background: rgba(52,211,153,0.15); color: var(--bajo); }
+  .badge.medio, .badge.moderada { background: rgba(251,191,36,0.15); color: var(--medio); }
+  .badge.alto, .badge.elevada, .badge.muy_elevada { background: rgba(248,113,113,0.15); color: var(--alto); }
+  .badge.sin-dato { background: rgba(75,90,95,0.25); color: var(--muted); }
+  .detalle { margin-top: 0.5rem; font-size: 0.85rem; color: var(--muted); }
+  .pendiente { font-size: 0.85rem; color: var(--muted); font-style: italic; }
+  footer { margin-top: 1.5rem; font-size: 0.78rem; color: var(--muted); line-height: 1.5; }
+  #resultado { display: none; }
+</style>
+</head>
+<body>
+  <div class="shell">
+    <h1>Nueva<span class="accent">Casa</span> · Riesgo geografico</h1>
+    <p class="subtitle">Perfil de riesgo por zona, para uso de aseguradoras (suscripcion / tarificacion / cumulo).</p>
+    <span class="tag">PROTOTIPO · fuentes 100% oficiales, sin scraping</span>
+
+    <div class="panel">
+      <label for="ubicacion">Zona</label>
+      <select id="ubicacion"></select>
+      <button id="consultar">Consultar perfil de riesgo</button>
+    </div>
+
+    <div id="resultado" class="grid">
+      <div class="card">
+        <h3>Delitos contra la propiedad (2024)</h3>
+        <div id="delito-badge"></div>
+        <div id="delito-detalle" class="detalle"></div>
+      </div>
+      <div class="card">
+        <h3>Riesgo sismico (INPRES)</h3>
+        <div id="sismico-badge"></div>
+        <div id="sismico-detalle" class="detalle"></div>
+      </div>
+      <div class="card">
+        <h3>Precio real de mercado</h3>
+        <p class="pendiente">Pendiente de integrar (fuente oficial en evaluacion: Colegio de Escribanos / IDECOR).</p>
+      </div>
+      <div class="card">
+        <h3>Riesgo climatico</h3>
+        <p class="pendiente">Pendiente de integrar (fuente en evaluacion: SMN / INA).</p>
+      </div>
+    </div>
+
+    <footer>
+      Fuentes: delitos contra la propiedad, SNIC (Ministerio de Seguridad de la Nacion),
+      datos.gob.ar/dataset/seguridad_9. Riesgo sismico, INPRES-CIRSOC 103
+      (zonificacion oficial, cobertura parcial: solo zonas confirmadas por fuente).
+      Cobertura de cada senal varia por zona -- "sin dato" es honesto, no un cero.
+    </footer>
+  </div>
+
+<script>
+const ES_LOCAL = location.hostname === "localhost" || location.hostname === "127.0.0.1";
+const API_URL = ES_LOCAL
+  ? "http://localhost:8000/api/riesgo-seguros"
+  : "https://nuevacasa.onrender.com/api/riesgo-seguros";
+
+// Subconjunto curado (no exhaustivo) de zonas con datos ya cargados en
+// backend/app/delitos.py y/o backend/app/riesgo_sismico.py -- pensado
+// para que la demo muestre resultados reales, no solo "sin dato".
+const ZONAS = {
+  "Capital Federal": ["palermo", "belgrano", "recoleta", "caballito", "flores", "villa-urquiza", "capital-federal"],
+  "Buenos Aires (partidos)": ["san-isidro", "vicente-lopez", "tigre", "quilmes", "la-plata", "mar-del-plata", "buenos-aires"],
+  "Cordoba": ["cordoba-capital", "villa-carlos-paz", "rio-cuarto"],
+  "Mendoza (zona sismica alta)": ["mendoza-capital", "godoy-cruz", "san-rafael"],
+  "San Juan (zona sismica alta)": ["san-juan-capital"],
+  "Salta / Jujuy": ["salta-capital", "san-salvador-de-jujuy"],
+  "Tucuman / Catamarca": ["san-miguel-de-tucuman", "catamarca-capital"],
+  "San Luis / La Rioja": ["san-luis-capital", "la-rioja-capital"],
+  "Neuquen / Rio Negro": ["neuquen-capital", "san-carlos-de-bariloche"],
+  "Patagonia": ["comodoro-rivadavia", "trelew", "ushuaia"],
+};
+
+const NIVEL_LABEL = {
+  bajo: "Bajo", medio: "Medio", alto: "Alto",
+  muy_reducida: "Muy reducida", reducida: "Reducida", moderada: "Moderada",
+  elevada: "Elevada", muy_elevada: "Muy elevada",
+};
+
+function poblarSelect() {
+  const select = document.getElementById("ubicacion");
+  for (const [grupo, slugs] of Object.entries(ZONAS)) {
+    const optgroup = document.createElement("optgroup");
+    optgroup.label = grupo;
+    for (const slug of slugs) {
+      const opt = document.createElement("option");
+      opt.value = slug;
+      opt.textContent = slug.replace(/-/g, " ");
+      optgroup.appendChild(opt);
+    }
+    select.appendChild(optgroup);
+  }
+}
+
+function pintarBadge(elId, detalleId, info, campoNivel, formatoDetalle) {
+  const badgeEl = document.getElementById(elId);
+  const detalleEl = document.getElementById(detalleId);
+  if (!info) {
+    badgeEl.innerHTML = '<span class="badge sin-dato">Sin dato</span>';
+    detalleEl.textContent = "Todavia no hay este dato cargado para esta zona.";
+    return;
+  }
+  const nivel = info[campoNivel];
+  badgeEl.innerHTML = `<span class="badge ${nivel}">${NIVEL_LABEL[nivel] || nivel}</span>`;
+  detalleEl.textContent = formatoDetalle(info);
+}
+
+async function consultar() {
+  const boton = document.getElementById("consultar");
+  const ubicacion = document.getElementById("ubicacion").value;
+  boton.disabled = true;
+  boton.textContent = "Consultando...";
+  try {
+    const resp = await fetch(`${API_URL}?ubicacion=${encodeURIComponent(ubicacion)}`);
+    const data = await resp.json();
+
+    pintarBadge("delito-badge", "delito-detalle", data.delitos_contra_la_propiedad, "nivel",
+      (info) => info.es_agregado_provincial
+        ? `${info.hechos_2024.toLocaleString("es-AR")} hechos en 2024 (toda la provincia).`
+        : `${info.hechos_2024.toLocaleString("es-AR")} hechos en 2024.`);
+
+    pintarBadge("sismico-badge", "sismico-detalle", data.riesgo_sismico, "nivel",
+      (info) => `Zona sismica ${info.zona} (INPRES-CIRSOC 103, escala 0 a 4).`);
+
+    document.getElementById("resultado").style.display = "grid";
+  } catch (e) {
+    alert("No se pudo conectar con el backend. ¿Esta corriendo en " + API_URL + "?");
+  } finally {
+    boton.disabled = false;
+    boton.textContent = "Consultar perfil de riesgo";
+  }
+}
+
+poblarSelect();
+document.getElementById("consultar").addEventListener("click", consultar);
+</script>
+</body>
+</html>

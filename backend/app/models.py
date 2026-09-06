@@ -123,7 +123,15 @@ class InfoDelitos(BaseModel):
     es_agregado_provincial: bool = False  # True si es "toda la provincia", no comparable 1 a 1 con una localidad puntual
 
 
+class InfoSismico(BaseModel):
+    zona: int  # 0 a 4, zonificacion oficial INPRES-CIRSOC 103
+    nivel: str  # "muy_reducida" | "reducida" | "moderada" | "elevada" | "muy_elevada"
+    es_agregado_provincial: bool = False  # True = "toda la provincia", se muestra el maximo confirmado, no un promedio
+    nota: Optional[str] = None  # explica el agregado cuando es_agregado_provincial=True
+
+
 class SearchResponse(BaseModel):
     propiedades: list[Propiedad]
     portales: list[PortalResultado]
     delitos_zona: Optional[InfoDelitos] = None  # solo Buenos Aires provincia por ahora
+    riesgo_sismico: Optional[InfoSismico] = None  # cobertura parcial, ver backend/app/riesgo_sismico.py

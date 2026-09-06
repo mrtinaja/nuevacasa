@@ -227,6 +227,7 @@ const estadoPortales = document.getElementById("estado-portales");
 const resultadosEl = document.getElementById("resultados");
 const paginacionEl = document.getElementById("paginacion");
 const delitosZonaEl = document.getElementById("delitos-zona");
+const riesgoSismicoEl = document.getElementById("riesgo-sismico");
 const destacadosWrapEl = document.getElementById("destacados-wrap");
 const destacadosEl = document.getElementById("destacados");
 const toggleVistaEl = document.getElementById("toggle-vista");
@@ -484,7 +485,12 @@ async function completarConTunel(resultadoRender, filtros) {
       return delTunel;
     });
 
-    return { propiedades, portales, delitos_zona: resultadoRender.delitos_zona };
+    return {
+      propiedades,
+      portales,
+      delitos_zona: resultadoRender.delitos_zona,
+      riesgo_sismico: resultadoRender.riesgo_sismico,
+    };
   } catch (err) {
     // Tunel no disponible (PC apagada, ngrok caido, timeout) -- se sigue
     // con lo que ya trajo Render, sin mostrar ningun error.
@@ -577,6 +583,7 @@ form.addEventListener("submit", async (ev) => {
 
     renderPortales(resultado.portales);
     renderDelitosZona(resultado.delitos_zona);
+    renderRiesgoSismico(resultado.riesgo_sismico);
     renderResultados(resultado.propiedades);
   } catch (err) {
     estadoPortales.innerHTML = `<span class="badge badge-error">Error: ${escapeHtml(err.message)}</span>`;
@@ -635,6 +642,31 @@ function renderDelitosZona(delitos) {
     : `Incidencia de inseguridad: <strong>${NIVEL_LABEL[delitos.nivel]}</strong>`;
   delitosZonaEl.title = tooltip;
   delitosZonaEl.innerHTML = `
+    <span class="punto" aria-hidden="true"></span>
+    <span>${texto}</span>
+  `;
+}
+
+const SISMICO_NIVEL_LABEL = {
+  muy_reducida: "Muy reducida", reducida: "Reducida", moderada: "Moderada",
+  elevada: "Elevada", muy_elevada: "Muy elevada",
+};
+const SISMICO_TOOLTIP =
+  "Zonificacion sismica oficial INPRES-CIRSOC 103 (escala 0 a 4, de muy reducida a muy elevada). " +
+  "Cobertura parcial: solo se muestra donde hay zona confirmada por fuente oficial, no es una estimacion.";
+
+function renderRiesgoSismico(sismico) {
+  if (!sismico) {
+    riesgoSismicoEl.hidden = true;
+    return;
+  }
+  riesgoSismicoEl.hidden = false;
+  riesgoSismicoEl.className = `delitos-zona nivel-${sismico.nivel}`;
+  const texto = sismico.es_agregado_provincial
+    ? `Riesgo sismico (toda la provincia): <strong>${SISMICO_NIVEL_LABEL[sismico.nivel]}</strong>`
+    : `Riesgo sismico: <strong>${SISMICO_NIVEL_LABEL[sismico.nivel]}</strong>`;
+  riesgoSismicoEl.title = sismico.es_agregado_provincial ? sismico.nota : SISMICO_TOOLTIP;
+  riesgoSismicoEl.innerHTML = `
     <span class="punto" aria-hidden="true"></span>
     <span>${texto}</span>
   `;

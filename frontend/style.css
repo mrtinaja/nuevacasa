@@ -501,7 +501,14 @@ input[type="number"]::-webkit-inner-spin-button {
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ---------- delitos de la zona ---------- */
+/* ---------- delitos de la zona + riesgo sismico ---------- */
+
+.badges-riesgo {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin: 0 0 1.5rem;
+}
 
 .delitos-zona {
   display: flex;
@@ -513,7 +520,7 @@ input[type="number"]::-webkit-inner-spin-button {
   background: var(--surface-2);
   font-size: 0.82rem;
   color: var(--text-dim);
-  margin: 0 0 1.5rem;
+  margin: 0;
   cursor: help;
 }
 
@@ -527,6 +534,14 @@ input[type="number"]::-webkit-inner-spin-button {
 .delitos-zona.nivel-bajo .punto { background: var(--success); }
 .delitos-zona.nivel-medio .punto { background: var(--warning); }
 .delitos-zona.nivel-alto .punto { background: var(--danger); }
+
+/* Niveles de riesgo sismico (INPRES) -- misma escala de color que
+   delitos, extendida a 5 niveles en vez de 3. */
+.delitos-zona.nivel-muy_reducida .punto { background: var(--success); }
+.delitos-zona.nivel-reducida .punto { background: var(--success); }
+.delitos-zona.nivel-moderada .punto { background: var(--warning); }
+.delitos-zona.nivel-elevada .punto { background: var(--danger); }
+.delitos-zona.nivel-muy_elevada .punto { background: var(--danger); }
 
 .delitos-zona strong { color: var(--text); }
 
