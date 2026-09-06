@@ -19,24 +19,34 @@ from app.zonas_cardinales import partidos_de_zona
 # real, "provincia-de-buenos-aires", ver UBICACION_SLUGS en
 # mercadolibre.py), la unica forma real de cubrir la provincia en
 # ZonaProp es pedir partido por partido y juntar, igual que ya se hace
-# con zona-norte/oeste/sur (ver zonas_cardinales.py). Este set es el
-# mismo curado que ya usa el resto de la app (frontend UBICACIONES,
-# delitos.py) para Buenos Aires -- no son los ~135 partidos reales de
-# la provincia, es el subconjunto conocido; sigue siendo mucho mejor
-# que devolver avisos de Rosario o Cordoba mezclados, que es lo que
-# pasaba antes de este fix.
+# con zona-norte/oeste/sur (ver zonas_cardinales.py).
+#
+# Recortado a proposito a 12 partidos (no los 22 curados que existen en
+# el resto de la app, ni los ~135 reales de la provincia): confirmado en
+# vivo contra Render que 22 pedidos seguidos en la misma sesion (cookies
+# persistentes, ver ZonapropScraper.__init__) terminaron bloqueados
+# 22/22, mientras que busquedas puntuales sueltas (Palermo, Mendoza)
+# veniant funcionando bien el mismo dia -- apunta a que el volumen de la
+# rafaga importa, no solo la reputacion de la IP. Se prioriza GBA
+# (mayor volumen real de avisos) sobre Costa Atlantica (estacional, bajo
+# volumen fuera de temporada) para el recorte.
 PARTIDOS_BUENOS_AIRES_TODOS = [
-    # Zona Norte, Oeste, Sur (mismos partidos que ZONAS_CARDINALES).
-    "san-isidro", "vicente-lopez", "tigre", "san-fernando", "pilar", "nordelta",
-    "moron", "ituzaingo", "merlo", "moreno",
-    "quilmes", "avellaneda", "lanus", "lomas-de-zamora", "la-plata",
-    # Costa Atlantica -- un slug representativo por partido real (varias
-    # localidades curadas comparten partido, ej. San Clemente/Las
-    # Toninas/Santa Teresita son todas partido La Costa: no tiene
-    # sentido pedirle a ZonaProp el mismo partido varias veces).
-    "san-clemente-del-tuyu", "pinamar", "villa-gesell", "mar-del-plata",
-    "miramar", "necochea", "monte-hermoso",
+    # GBA: Norte, Oeste, Sur (subconjunto de ZONAS_CARDINALES, sin
+    # Nordelta/San Fernando/Ituzaingo/Moreno/Avellaneda para acortar la
+    # rafaga -- quedan cubiertos indirectamente por los partidos vecinos).
+    "san-isidro", "vicente-lopez", "tigre", "pilar",
+    "moron", "merlo",
+    "quilmes", "lanus", "lomas-de-zamora", "la-plata",
+    # Costa Atlantica: solo los dos de mayor volumen de avisos.
+    "mar-del-plata", "pinamar",
 ]
+
+# Pausa entre partido y partido dentro del fan-out (ver mas abajo,
+# search()) -- mitigacion legitima (espaciar pedidos, no evadir
+# deteccion) en la misma linea que el resto del endurecimiento anti-
+# bloqueo de este scraper. No hay garantia de que alcance si el bloqueo
+# es puramente por reputacion de IP y no por volumen de la rafaga.
+PAUSA_ENTRE_PARTIDOS_SEG = 0.7
 
 
 def _parse_int(valor):
@@ -279,7 +289,9 @@ class ZonapropScraper(Scraper):
         # si TODOS fallaron (bloqueo sistemico, no puntual).
         resultados: list[Propiedad] = []
         errores: list[str] = []
-        for partido in partidos:
+        for i, partido in enumerate(partidos):
+            if i > 0:
+                time.sleep(PAUSA_ENTRE_PARTIDOS_SEG)
             try:
                 resultados.extend(self._buscar_una_ubicacion(filtros, partido))
             except ScraperBloqueado as exc:
