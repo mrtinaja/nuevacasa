@@ -741,30 +741,56 @@ form.addEventListener("submit", async (ev) => {
   estadoPortales.innerHTML = `<span class="estado-cargando"><span class="spinner"></span> Consultando portales...</span>`;
   renderSkeletons();
 
-  try {
+  // ZonaProp responde MUCHO mas lento que el resto (su reintento contra
+  // el anti-bot -- 2 intentos con espera 2s+5s -- se paga en casi toda
+  // busqueda desde Render, no solo la primera: ~7.5s con ZonaProp vs
+  // ~1.3s sin el, medido en vivo). En vez de bloquear toda la busqueda
+  // esperando a ZonaProp, se pide por separado (el backend ya soporta
+  // filtros.portales) y se renderiza el resto apenas llega -- la
+  // busqueda se SIENTE rapida aunque ZonaProp tarde lo mismo de
+  // siempre. "Buen precio" se calcula con lo que haya en cada tanda
+  // (no se recalcula cuando se suma ZonaProp despues) -- una propiedad
+  // marcada "Buen precio" con 3 portales puede no distinguirse tan
+  // claro una vez que ZonaProp se suma a la comparacion, aceptado a
+  // proposito por ser mas simple y mas rapido de ver.
+  const PORTALES_RAPIDOS = ["mercadolibre", "remax", "argenprop"];
+  const PORTALES_LENTOS = ["zonaprop"];
+
+  async function buscarSubset(listaPortales) {
     const resp = await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(filtros),
+      body: JSON.stringify({ ...filtros, portales: listaPortales }),
     });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     let resultado = await resp.json();
-
     const bloqueados = resultado.portales.filter((p) => p.status !== "ok").length;
-    if (!ES_LOCAL && bloqueados >= UMBRAL_PORTALES_BLOQUEADOS_PARA_RESPALDO) {
-      resultado = await completarConTunel(resultado, filtros);
+    if (!ES_LOCAL && bloqueados >= Math.min(UMBRAL_PORTALES_BLOQUEADOS_PARA_RESPALDO, listaPortales.length)) {
+      resultado = await completarConTunel(resultado, { ...filtros, portales: listaPortales });
     }
+    return resultado;
+  }
 
-    renderPortales(resultado.portales);
-    renderDelitosZona(resultado.delitos_zona);
-    renderRiesgoSismico(resultado.riesgo_sismico);
-    renderHomicidiosZona(resultado.homicidios_zona);
-    centroZonaActual = resultado.centro_zona ?? null;
-    centroZonaEsProvincial = Boolean(resultado.delitos_zona?.es_agregado_provincial);
+  function aplicarZoom(resultado) {
+    // "capital-federal" (todos los barrios) tambien viene marcado
+    // es_agregado_provincial=true en delitos_zona -- mismo tratamiento
+    // que "toda la provincia de Buenos Aires" a pesar de que CABA es
+    // minuscula en comparacion (~200 km2 vs ~300000 km2), asi que
+    // alejaba el mapa a zoom 8 (escala provincial) para una busqueda
+    // de Capital Federal, mostrando media Region Metropolitana en vez
+    // de solo CABA. Se trata aparte: zoom intermedio para CABA, el
+    // alejado (8) solo para un agregado provincial real.
+    if (filtros.ubicacion === "capital-federal") {
+      centroZonaZoom = 12;
+    } else if (resultado.delitos_zona?.es_agregado_provincial) {
+      centroZonaZoom = 8;
+    } else {
+      centroZonaZoom = 13;
+    }
+  }
 
+  async function resolverDireccionBuscada() {
     const direccionTexto = formData.get("direccion")?.trim() ?? "";
-    const propiedadesFiltradas = filtrarPorDireccion(resultado.propiedades, direccionTexto);
-
     if (direccionTexto && sugerenciaDireccionElegida && sugerenciaDireccionElegida.nombre === direccionTexto) {
       // Ya se eligio del desplegable de autocompletado -- coordenadas
       // conocidas, no hace falta geocodificar de nuevo.
@@ -775,8 +801,47 @@ form.addEventListener("submit", async (ev) => {
     } else {
       direccionBuscadaCoords = null;
     }
+    return direccionTexto;
+  }
 
-    renderResultados(propiedadesFiltradas);
+  try {
+    // Las dos tandas arrancan en paralelo -- no una despues de la otra.
+    const promesaRapida = buscarSubset(PORTALES_RAPIDOS);
+    const promesaLenta = buscarSubset(PORTALES_LENTOS);
+
+    // Mientras tanto, ZonaProp se muestra "cargando" en vez de ausente.
+    renderPortales([
+      ...PORTALES_RAPIDOS.map((p) => ({ portal: p, status: "cargando", cantidad: 0 })),
+      { portal: "zonaprop", status: "cargando", cantidad: 0 },
+    ]);
+
+    const resultadoRapido = await promesaRapida;
+    aplicarZoom(resultadoRapido);
+    renderDelitosZona(resultadoRapido.delitos_zona);
+    renderRiesgoSismico(resultadoRapido.riesgo_sismico);
+    renderHomicidiosZona(resultadoRapido.homicidios_zona);
+    centroZonaActual = resultadoRapido.centro_zona ?? null;
+
+    const direccionTexto = await resolverDireccionBuscada();
+    let propiedadesAcumuladas = resultadoRapido.propiedades;
+    renderPortales([
+      ...resultadoRapido.portales,
+      { portal: "zonaprop", status: "cargando", cantidad: 0 },
+    ]);
+    renderResultados(filtrarPorDireccion(propiedadesAcumuladas, direccionTexto));
+
+    // ZonaProp se suma cuando termine, sin bloquear lo de arriba.
+    try {
+      const resultadoLento = await promesaLenta;
+      propiedadesAcumuladas = propiedadesAcumuladas.concat(resultadoLento.propiedades);
+      renderPortales([...resultadoRapido.portales, ...resultadoLento.portales]);
+      renderResultados(filtrarPorDireccion(propiedadesAcumuladas, direccionTexto));
+    } catch (err) {
+      renderPortales([
+        ...resultadoRapido.portales,
+        { portal: "zonaprop", status: "error", detalle: err.message, cantidad: 0 },
+      ]);
+    }
   } catch (err) {
     estadoPortales.innerHTML = `<span class="badge badge-error">Error: ${escapeHtml(err.message)}</span>`;
   }
