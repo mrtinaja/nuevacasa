@@ -72,7 +72,10 @@
 
           <div class="campo campo-direccion">
             <label for="direccion" title="Filtra los avisos de la zona elegida por calle/direccion, y centra el mapa ahi">Direccion</label>
-            <input type="text" id="direccion" name="direccion" placeholder="Ej: Av. Cabildo 2000" autocomplete="off" />
+            <div class="direccion-combo">
+              <input type="text" id="direccion" name="direccion" placeholder="Ej: Av. Cabildo 2000" autocomplete="off" />
+              <ul id="direccion-sugerencias" class="select-listbox" role="listbox" hidden></ul>
+            </div>
           </div>
 
           <div class="campo">

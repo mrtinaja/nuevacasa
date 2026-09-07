@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.geocodificar import geocodificar
+from app.geocodificar import geocodificar, sugerir
 from app.models import Filtros, SearchResponse
 from app.orchestrator import SCRAPERS, buscar
 from app.riesgo_seguros import perfil_riesgo_zona
@@ -55,3 +55,11 @@ def geocodificar_endpoint(direccion: str, contexto: str | None = None):
     error 4xx/5xx por eso (una direccion sin match es un caso normal,
     no una falla)."""
     return geocodificar(direccion, contexto)
+
+
+@app.get("/api/sugerir-direccion")
+def sugerir_direccion_endpoint(direccion: str, contexto: str | None = None):
+    """Sugerencias de autocompletado para el campo Direccion mientras
+    el usuario escribe (mismo estilo Google Maps) -- lista de hasta 5
+    {lat, lon, nombre}, vacia si no hay nada. Ver `geocodificar.py`."""
+    return sugerir(direccion, contexto)

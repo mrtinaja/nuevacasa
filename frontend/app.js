@@ -11,6 +11,9 @@ const API_URL = ES_LOCAL
 const GEOCODIFICAR_URL = ES_LOCAL
   ? "http://localhost:8000/api/geocodificar"
   : "https://nuevacasa.onrender.com/api/geocodificar";
+const SUGERIR_DIRECCION_URL = ES_LOCAL
+  ? "http://localhost:8000/api/sugerir-direccion"
+  : "https://nuevacasa.onrender.com/api/sugerir-direccion";
 
 // Respaldo opcional: la IP de Render es de datacenter y ZonaProp/
 // MercadoLibre la bloquean seguido (confirmado: el mismo bloqueo pasa
@@ -241,6 +244,126 @@ async function geocodificarDireccion(direccion, contexto) {
     return null;
   }
 }
+
+// Contexto (Zona+Provincia elegidas) para desambiguar direcciones
+// cortas -- se salta el indice 0 de Zona porque ahi siempre esta la
+// opcion agregada ("Todos los barrios"/"Toda la provincia"), que no es
+// un lugar real y confunde a Nominatim en vez de ayudarlo (bug real
+// encontrado al probar esto la primera vez).
+function contextoUbicacionActual() {
+  const provinciaTexto = provinciaSelect.options[provinciaSelect.selectedIndex]?.textContent ?? "";
+  const zonaTexto = ubicacionSelect.selectedIndex > 0
+    ? ubicacionSelect.options[ubicacionSelect.selectedIndex]?.textContent ?? ""
+    : "";
+  return [zonaTexto, provinciaTexto].filter(Boolean).join(", ");
+}
+
+async function sugerirDirecciones(direccion, contexto) {
+  if (!direccion) return [];
+  try {
+    const params = new URLSearchParams({ direccion });
+    if (contexto) params.set("contexto", contexto);
+    const resp = await fetch(`${SUGERIR_DIRECCION_URL}?${params.toString()}`);
+    if (!resp.ok) return [];
+    return await resp.json();
+  } catch (err) {
+    return [];
+  }
+}
+
+// Autocompletado tipo Google Maps para el campo Direccion: mientras se
+// escribe, sugiere direcciones reales de Nominatim en un desplegable;
+// al elegir una, se guardan sus coordenadas de una (sin volver a
+// geocodificar al buscar, ver uso de esta variable en el submit del
+// form). Si el usuario sigue escribiendo despues de elegir una
+// sugerencia, la invalida -- geocodifica de nuevo al buscar, mismo
+// comportamiento que si nunca hubiera usado el desplegable.
+let sugerenciaDireccionElegida = null;
+
+{
+  const direccionInput = document.getElementById("direccion");
+  const listboxEl = document.getElementById("direccion-sugerencias");
+  let sugerenciasActuales = [];
+  let indiceResaltadoSugerencia = -1;
+  let debounceId = null;
+
+  function cerrarSugerencias() {
+    listboxEl.hidden = true;
+    listboxEl.innerHTML = "";
+    sugerenciasActuales = [];
+    indiceResaltadoSugerencia = -1;
+  }
+
+  function resaltarSugerencia(indice) {
+    indiceResaltadoSugerencia = indice;
+    [...listboxEl.children].forEach((li, i) => li.classList.toggle("resaltada", i === indice));
+  }
+
+  function pintarSugerencias(sugerencias) {
+    sugerenciasActuales = sugerencias;
+    if (sugerencias.length === 0) {
+      cerrarSugerencias();
+      return;
+    }
+    listboxEl.innerHTML = sugerencias
+      .map((s) => `<li class="select-option" role="option">${escapeHtml(s.nombre)}</li>`)
+      .join("");
+    [...listboxEl.children].forEach((li, i) => {
+      li.addEventListener("click", () => elegirSugerencia(i));
+      li.addEventListener("mouseenter", () => resaltarSugerencia(i));
+    });
+    listboxEl.hidden = false;
+    indiceResaltadoSugerencia = -1;
+  }
+
+  function elegirSugerencia(indice) {
+    const s = sugerenciasActuales[indice];
+    if (!s) return;
+    // Primer tramo de display_name de Nominatim (ej. "Avenida Cabildo
+    // 2000, Belgrano") -- mas corto y legible que la cadena completa
+    // con provincia/pais/codigo postal repetidos.
+    direccionInput.value = s.nombre.split(",").slice(0, 2).join(",").trim();
+    sugerenciaDireccionElegida = { lat: s.lat, lon: s.lon, nombre: direccionInput.value };
+    cerrarSugerencias();
+  }
+
+  direccionInput.addEventListener("input", () => {
+    sugerenciaDireccionElegida = null; // se escribio de nuevo, invalida la eleccion anterior
+    clearTimeout(debounceId);
+    const texto = direccionInput.value.trim();
+    if (texto.length < 4) {
+      cerrarSugerencias();
+      return;
+    }
+    debounceId = setTimeout(async () => {
+      const sugerencias = await sugerirDirecciones(texto, contextoUbicacionActual());
+      // Si el usuario ya siguio escribiendo mientras esperaba la
+      // respuesta, esta ya no vale -- evita que una respuesta vieja y
+      // lenta pise el resultado de lo que se escribio despues.
+      if (direccionInput.value.trim() === texto) pintarSugerencias(sugerencias);
+    }, 400);
+  });
+
+  direccionInput.addEventListener("keydown", (ev) => {
+    if (listboxEl.hidden) return;
+    if (ev.key === "ArrowDown") {
+      ev.preventDefault();
+      resaltarSugerencia(Math.min(indiceResaltadoSugerencia + 1, sugerenciasActuales.length - 1));
+    } else if (ev.key === "ArrowUp") {
+      ev.preventDefault();
+      resaltarSugerencia(Math.max(indiceResaltadoSugerencia - 1, 0));
+    } else if (ev.key === "Enter" && indiceResaltadoSugerencia >= 0) {
+      ev.preventDefault();
+      elegirSugerencia(indiceResaltadoSugerencia);
+    } else if (ev.key === "Escape") {
+      cerrarSugerencias();
+    }
+  });
+
+  document.addEventListener("click", (ev) => {
+    if (!ev.target.closest(".direccion-combo")) cerrarSugerencias();
+  });
+}
 let mapaLeaflet = null;
 let marcadoresLayer = null;
 let capaCalles = null;
@@ -329,6 +452,11 @@ function crearSelectPersonalizado(select) {
     li.setAttribute("role", "option");
     if (opt.value === select.value) li.classList.add("seleccionada");
     li.addEventListener("click", () => seleccionar(indice));
+    // Mantiene indiceResaltado sincronizado con el mouse (el resaltado
+    // visual ya lo cubre el :hover en CSS) -- asi si se pasa el mouse
+    // y despues se aprieta Enter/flecha, arranca desde la opcion que
+    // se estaba mirando, no desde un indice de teclado viejo.
+    li.addEventListener("mouseenter", () => { indiceResaltado = indice; });
     listbox.appendChild(li);
     opciones.push(opt);
   }
@@ -628,17 +756,12 @@ form.addEventListener("submit", async (ev) => {
     const direccionTexto = formData.get("direccion")?.trim() ?? "";
     const propiedadesFiltradas = filtrarPorDireccion(resultado.propiedades, direccionTexto);
 
-    if (direccionTexto) {
-      const provinciaTexto = provinciaSelect.options[provinciaSelect.selectedIndex]?.textContent ?? "";
-      // El indice 0 de "Zona" siempre es la opcion agregada ("Todos los
-      // barrios"/"Toda la provincia", ver poblarZonas) -- no es un
-      // nombre de lugar real, meterlo en la consulta de Nominatim rompe
-      // la geocodificacion en vez de ayudarla a desambiguar.
-      const zonaTexto = ubicacionSelect.selectedIndex > 0
-        ? ubicacionSelect.options[ubicacionSelect.selectedIndex]?.textContent ?? ""
-        : "";
-      const contexto = [zonaTexto, provinciaTexto].filter(Boolean).join(", ");
-      const geo = await geocodificarDireccion(direccionTexto, contexto);
+    if (direccionTexto && sugerenciaDireccionElegida && sugerenciaDireccionElegida.nombre === direccionTexto) {
+      // Ya se eligio del desplegable de autocompletado -- coordenadas
+      // conocidas, no hace falta geocodificar de nuevo.
+      direccionBuscadaCoords = sugerenciaDireccionElegida;
+    } else if (direccionTexto) {
+      const geo = await geocodificarDireccion(direccionTexto, contextoUbicacionActual());
       direccionBuscadaCoords = geo ? { lat: geo.lat, lon: geo.lon, nombre: direccionTexto } : null;
     } else {
       direccionBuscadaCoords = null;
@@ -809,8 +932,17 @@ function estiloZonaDelito(feature) {
 function tooltipZonaDelito(nombreZona) {
   return (feature, layer) => {
     if (!feature.properties.nivel) return;
+    // El color de la zona sigue siendo SOLO delitos contra la
+    // propiedad (por eso una sola capa, un solo color) -- pero si el
+    // geojson tambien trae homicidios horneados (hoy: Buenos Aires y
+    // CABA, ver homicidios.py), se agrega como segunda linea en el
+    // mismo tooltip en vez de dejarlo solo en el badge de arriba, para
+    // no mostrar datos distintos en dos lugares del mismo mapa.
+    const lineaHomicidios = feature.properties.homicidios_nivel
+      ? `<br>Homicidios dolosos: <strong>${NIVEL_LABEL[feature.properties.homicidios_nivel]}</strong>`
+      : "";
     layer.bindTooltip(
-      `${nombreZona(feature)}: incidencia de inseguridad <strong>${NIVEL_LABEL[feature.properties.nivel]}</strong>`,
+      `${nombreZona(feature)}: incidencia de inseguridad <strong>${NIVEL_LABEL[feature.properties.nivel]}</strong>${lineaHomicidios}`,
       { sticky: true }
     );
   };

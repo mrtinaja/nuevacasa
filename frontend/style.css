@@ -241,7 +241,8 @@ input[type="number"]::-webkit-inner-spin-button {
    busqueda) y se dibuja un trigger + listbox propios encima, manejados
    en crearSelectPersonalizado() (frontend/app.js). */
 
-.select-custom {
+.select-custom,
+.direccion-combo {
   position: relative;
 }
 
@@ -315,7 +316,8 @@ input[type="number"]::-webkit-inner-spin-button {
   cursor: pointer;
 }
 
-.select-option.resaltada {
+.select-option.resaltada,
+.select-option:hover {
   background: var(--turquoise-dim);
   color: var(--text);
 }
