@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Metodología · Riesgo geográfico para aseguradoras</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #05080a;
+    --panel: #0d1418;
+    --panel-2: #0a1114;
+    --border: #1c262b;
+    --border-strong: #2a3a3d;
+    --text: #e7f1f0;
+    --muted: #8ba3a0;
+    --faint: #4c6866;
+    --accent: #5eead4;
+    --accent-2: #0891b2;
+    --amber: #f2c94c;
+    --red: #f87171;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: "Inter", system-ui, sans-serif; line-height: 1.6;
+  }
+  code, .mono { font-family: "JetBrains Mono", monospace; }
+  .shell { max-width: 860px; margin: 0 auto; padding: 1.5rem 1.25rem 5rem; }
+  h1, h2, h3 { font-family: "Space Grotesk", sans-serif; }
+  a { color: var(--accent); }
+
+  .topnav {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0.5rem 0 1.75rem; flex-wrap: wrap; gap: 0.6rem;
+  }
+  .topnav a {
+    color: var(--muted); text-decoration: none; font-size: 0.85rem;
+    border: 1px solid var(--border); border-radius: 999px; padding: 0.4rem 0.85rem;
+  }
+  .topnav a:hover { color: var(--accent); border-color: var(--border-strong); }
+
+  .hero { padding: 0.5rem 0 2.5rem; }
+  .tag {
+    display: inline-block; margin: 0 0 1.1rem; padding: 0.3rem 0.7rem;
+    border: 1px solid var(--accent-2); border-radius: 999px;
+    font-size: 0.78rem; color: var(--accent); letter-spacing: 0.03em;
+  }
+  h1.title { font-size: clamp(1.7rem, 4vw, 2.3rem); margin: 0 0 0.9rem; line-height: 1.2; }
+  .lede { font-size: 1.02rem; color: var(--muted); max-width: 640px; }
+
+  nav.indice {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+    padding: 1rem 1.25rem; margin: 1.5rem 0 0; font-size: 0.88rem;
+  }
+  nav.indice p { margin: 0 0 0.5rem; color: var(--faint); font-size: 0.75rem; letter-spacing: 0.05em; text-transform: uppercase; }
+  nav.indice ol { margin: 0; padding-left: 1.1rem; }
+  nav.indice li { margin: 0.25rem 0; }
+
+  section.senal {
+    padding: 2.5rem 0; border-top: 1px solid var(--border);
+  }
+  .senal-header {
+    display: flex; justify-content: space-between; align-items: baseline;
+    flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.3rem;
+  }
+  .senal-header h2 { margin: 0; font-size: 1.35rem; }
+  .estado-pill {
+    font-size: 0.72rem; font-weight: 700; letter-spacing: 0.03em;
+    padding: 0.3rem 0.7rem; border-radius: 999px; white-space: nowrap;
+  }
+  .estado-pill.on { background: rgba(52,211,153,0.15); color: #34d399; }
+  .estado-pill.off { background: rgba(194,164,39,0.15); color: var(--amber); }
+
+  dl.ficha { margin: 1.25rem 0; }
+  dl.ficha dt {
+    font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--accent); margin-top: 1.1rem;
+  }
+  dl.ficha dd { margin: 0.35rem 0 0; color: var(--text); }
+  dl.ficha dd.muted { color: var(--muted); font-size: 0.92rem; }
+  dl.ficha code {
+    background: var(--panel-2); border: 1px solid var(--border); border-radius: 5px;
+    padding: 0.1rem 0.4rem; font-size: 0.85em; color: var(--accent);
+  }
+
+  .limitaciones {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+    padding: 1.1rem 1.3rem; margin-top: 1.25rem;
+  }
+  .limitaciones p.tit { margin: 0 0 0.6rem; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.04em; color: var(--red); text-transform: uppercase; }
+  .limitaciones ul { margin: 0; padding-left: 1.2rem; color: var(--muted); font-size: 0.92rem; }
+  .limitaciones li { margin: 0.4rem 0; }
+
+  section.regla {
+    background: linear-gradient(135deg, #0d1f22, #0a1620);
+    border: 1px solid var(--border-strong); border-radius: 16px;
+    padding: 1.75rem; margin: 2.5rem 0;
+  }
+  section.regla h2 { margin: 0 0 0.75rem; font-size: 1.3rem; }
+  section.regla p { color: var(--muted); margin: 0.6rem 0 0; }
+
+  footer.notas { margin-top: 2rem; font-size: 0.78rem; color: var(--faint); line-height: 1.6; }
+</style>
+</head>
+<body>
+  <div class="shell">
+    <nav class="topnav">
+      <a href="riesgo-seguros.html">&larr; Riesgo geográfico</a>
+      <a href="index.html">NuevaCasa</a>
+    </nav>
+
+    <section class="hero">
+      <span class="tag">METODOLOGÍA COMPLETA · para evaluación técnica</span>
+      <h1 class="title">Trazabilidad exacta de cada señal —<br />organismo, dataset y cómo se arma cada zona.</h1>
+      <p class="lede">
+        Esta página existe para quien necesita verificar el dato antes de confiar en él, no para convencer.
+        Cada señal documenta su fuente primaria, el método exacto de construcción por zona, la cobertura
+        real y las limitaciones — incluidas las que juegan en contra.
+      </p>
+
+      <nav class="indice">
+        <p>En esta página</p>
+        <ol>
+          <li><a href="#delito">Delitos contra la propiedad</a></li>
+          <li><a href="#homicidios">Homicidios dolosos</a></li>
+          <li><a href="#sismico">Riesgo sísmico</a></li>
+          <li><a href="#pendientes">Señales pendientes (precio, clima)</a></li>
+          <li><a href="#regla">Regla general del dataset</a></li>
+        </ol>
+      </nav>
+    </section>
+
+    <section class="senal" id="delito">
+      <div class="senal-header">
+        <h2>Delitos contra la propiedad</h2>
+        <span class="estado-pill on">EN PRODUCCIÓN</span>
+      </div>
+
+      <dl class="ficha">
+        <dt>Organismo</dt>
+        <dd>Ministerio de Seguridad de la Nación — Sistema Nacional de Información Criminal (SNIC)</dd>
+
+        <dt>Dataset y archivo</dt>
+        <dd>"Sistema de Alerta Temprana — Delitos contra la Propiedad" · <code>SAT-Propiedad-BU_2017-2024.csv</code><br />
+          <a href="https://datos.gob.ar/dataset/seguridad_9" target="_blank" rel="noopener">datos.gob.ar/dataset/seguridad_9</a></dd>
+
+        <dt>Qué se cuenta exactamente</dt>
+        <dd class="muted">Suma de <code>cantidad_hechos</code> de todas las categorías de delito contra la propiedad —
+          robos, hurtos, robo/hurto de automotores y motos, extorsiones — para el año calendario 2024 completo.
+          Es un total agregado, no un desglose por categoría (ese desglose existe en el CSV crudo y es la base
+          para extender a un producto de Automotor, ver la sección de Alcance en la página principal).</dd>
+
+        <dt>Cómo se construye cada zona</dt>
+        <dd class="muted">
+          <strong>Buenos Aires provincia:</strong> <code>departamento_nombre</code> del SNIC mapea 1 a 1 con el
+          partido.<br />
+          <strong>CABA:</strong> el SNIC reporta por Comuna, no por barrio — se usa el mapeo oficial
+          barrio→comuna (Ley 1777, división político-administrativa vigente). Barrios que comparten comuna
+          muestran el mismo número (ej. Retiro/San Nicolás/Puerto Madero/San Telmo/Monserrat/Constitución son
+          todos Comuna 1).<br />
+          <strong>Resto del país:</strong> cada ciudad curada se mapeó a mano a su departamento SNIC real
+          (ej. Villa Carlos Paz → Departamento Punilla, Córdoba).
+        </dd>
+
+        <dt>Niveles bajo / medio / alto</dt>
+        <dd class="muted">Terciles calculados sobre las ~153 localidades individuales cargadas hoy — no es un
+          estándar externo ni una escala de riesgo oficial. Si se suman más localidades, los cortes se
+          recalculan.</dd>
+
+        <dt>Cobertura</dt>
+        <dd class="muted">17 provincias curadas (~157 localidades). Las opciones "Toda la provincia" suman
+          <strong>todos</strong> los departamentos de esa provincia — es una escala distinta a una localidad
+          puntual, se marcan aparte (<code>es_agregado_provincial</code>) en vez de forzarles un nivel que no
+          significa lo mismo.</dd>
+      </dl>
+
+      <div class="limitaciones">
+        <p class="tit">Limitaciones reales</p>
+        <ul>
+          <li>Cantidad TOTAL de hechos, sin ajustar por población — una ciudad grande o turística muestra más
+            hechos que una chica solo por tener más gente, no necesariamente por ser "más peligrosa" por
+            habitante.</li>
+          <li>Un solo año (2024), no una tendencia histórica.</li>
+          <li>Casos con nombre ambiguo entre provincias (ej. "Rawson", que existe en San Juan y en Chubut) o
+            sin comuna oficial (ej. "Barrio Norte") quedan deliberadamente sin dato en vez de asignarles un
+            número que podría ser el equivocado.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="senal" id="homicidios">
+      <div class="senal-header">
+        <h2>Homicidios dolosos</h2>
+        <span class="estado-pill on">EN PRODUCCIÓN</span>
+      </div>
+
+      <dl class="ficha">
+        <dt>Organismo</dt>
+        <dd>Ministerio de Seguridad de la Nación — Dirección Nacional de Estadística Criminal (mismo organismo
+          que el dataset de delitos contra la propiedad, dataset independiente)</dd>
+
+        <dt>Dataset y archivo</dt>
+        <dd>"Homicidios dolosos, Sistema de Alerta Temprana (HD)" · <code>SAT-HD-BU.csv</code><br />
+          <a href="https://datos.gob.ar/dataset/homicidios-dolosos-sistema-de-alerta-temprana-estadisticas-criminales-en-la-republica-argentina" target="_blank" rel="noopener">datos.gob.ar — dataset de homicidios dolosos</a></dd>
+
+        <dt>Por qué es una señal separada, no combinada con delito</dt>
+        <dd class="muted">Un partido puede tener incidencia media en robos y a la vez estar entre los más
+          violentos en homicidios — son cosas distintas. Mezclarlas en un solo número requeriría inventar una
+          ponderación arbitraria entre "pérdida de un bien" y "muerte violenta". Se descubrió revisando el
+          mapa: Moreno (Buenos Aires) mostraba "medio" en delito contra la propiedad, pero es 4º de 78 partidos
+          bonaerenses en homicidios dolosos 2024 — un ranking genuinamente distinto, no un error de carga.</dd>
+
+        <dt>Qué se cuenta exactamente</dt>
+        <dd class="muted">Es microdato: una fila por víctima <em>y</em> una fila por imputado de cada hecho. Se
+          cuenta <code>cant_vic</code> de las filas "Víctima" únicas por <code>id_hecho</code>, para no
+          duplicar.</dd>
+
+        <dt>Formato de código, distinto al de delitos</dt>
+        <dd class="muted">Este dataset usa <code>provincia_id</code>/<code>departamento_id</code> sin cero a la
+          izquierda (Buenos Aires es <code>"6"</code>, no <code>"06"</code>) — mismo organismo, convención de
+          código distinta. No se puede cruzar por código directo contra el otro dataset sin normalizar primero.</dd>
+
+        <dt>Niveles bajo / medio / alto</dt>
+        <dd class="muted">Terciles sobre las 46 localidades cargadas hoy (31 partidos de Buenos Aires + 15
+          comunas de CABA).</dd>
+
+        <dt>Cobertura</dt>
+        <dd class="muted">Por ahora solo Buenos Aires provincia y CABA. Se priorizó cobertura donde nació la
+          pregunta (Moreno) antes de expandir al resto del país.</dd>
+      </dl>
+
+      <div class="limitaciones">
+        <p class="tit">Limitaciones reales</p>
+        <ul>
+          <li>Cantidad TOTAL de hechos en 2024, sin ajustar por población.</li>
+          <li>Un solo año, no una tendencia.</li>
+          <li>Cobertura geográfica parcial (BA + CABA) — el resto del país todavía no se cargó.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="senal" id="sismico">
+      <div class="senal-header">
+        <h2>Riesgo sísmico</h2>
+        <span class="estado-pill on">EN PRODUCCIÓN</span>
+      </div>
+
+      <dl class="ficha">
+        <dt>Organismo</dt>
+        <dd>INPRES — Instituto Nacional de Prevención Sísmica</dd>
+
+        <dt>Norma y fuente</dt>
+        <dd>Reglamento INPRES-CIRSOC 103 — zonificación sísmica oficial, 5 zonas (0 a 4) según la máxima
+          aceleración del suelo esperada para un sismo de diseño (recurrencia de 500 años).<br />
+          <a href="https://www.argentina.gob.ar/inpres/ingenieria-sismorresistente/zonificacion-sismica" target="_blank" rel="noopener">argentina.gob.ar/inpres — zonificación sísmica</a></dd>
+
+        <dt>Cobertura parcial, a propósito</dt>
+        <dd class="muted">La zonificación oficial completa (Anexo A del reglamento INPRES-CIRSOC 103-2018) es
+          por localidad/departamento y varía DENTRO de una misma provincia — ej. Mendoza: Gran Mendoza es zona
+          4, San Rafael es zona 3. No es un dato que se pueda asumir parejo por provincia salvo donde la fuente
+          lo confirma explícitamente ("en su totalidad"). Solo se cargaron las localidades con esa confirmación
+          explícita; el resto queda sin dato en vez de adivinar.</dd>
+
+        <dt>Zonas confirmadas por fuente</dt>
+        <dd class="muted">
+          Buenos Aires, Santa Fe, Entre Ríos, Corrientes, Misiones: zona 0 en su totalidad (incluye CABA).<br />
+          Córdoba capital, Neuquén capital: zona 1.<br />
+          Tucumán y Catamarca: zona 2 en su totalidad. San Luis capital, La Rioja capital, San Carlos de
+          Bariloche: zona 2.<br />
+          Salta capital, San Salvador de Jujuy, San Rafael (Mendoza): zona 3.<br />
+          Gran Mendoza, Gran San Juan: zona 4 (la máxima).
+        </dd>
+
+        <dt>Un caso que rompe la intuición fácil</dt>
+        <dd class="muted">Chaco, Formosa, Santiago del Estero, La Pampa y Santa Cruz NO son "zona 0 en su
+          totalidad" — el este es zona 0, el oeste ya es zona 1. Y Tierra del Fuego, a pesar de ser el punto
+          más alejado de los Andes, la fuente la ubica en zona 1, no zona 0 — rompe el patrón "lejos de los
+          Andes = sin riesgo". Por eso no está cargada: mejor sin dato que asumir mal.</dd>
+
+        <dt>Agregados "toda la provincia"</dt>
+        <dd class="muted">Para Mendoza, San Juan, Salta, Jujuy, San Luis y La Rioja se muestra el
+          <strong>máximo</strong> confirmado en la provincia (criterio conservador: para uso en seguros,
+          subestimar el riesgo es peor que sobreestimarlo), marcado como agregado con una nota explícita.</dd>
+      </dl>
+
+      <div class="limitaciones">
+        <p class="tit">Limitaciones reales</p>
+        <ul>
+          <li>Cobertura parcial por diseño — cubrir el país entero requeriría transcribir el Anexo A completo
+            del reglamento, todavía no hecho.</li>
+          <li>Es zonificación sísmica (peligro del suelo), no vulnerabilidad de la construcción — el reglamento
+            también clasifica las construcciones por grupo de vulnerabilidad, ese dato no está en este
+            dataset.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="senal" id="pendientes">
+      <div class="senal-header">
+        <h2>Señales pendientes</h2>
+        <span class="estado-pill off">EN CAMINO</span>
+      </div>
+
+      <dl class="ficha">
+        <dt>Precio real de mercado</dt>
+        <dd class="muted">Candidatos de fuente evaluados: Colegio de Escribanos / data.buenosaires.gob.ar
+          (CABA) e IDECOR / Observatorio del Mercado Inmobiliario (Córdoba). Verificado en vivo que el dataset
+          de "Precio de venta de departamentos" de Buenos Aires Data está desactualizado desde 2019 pese a que
+          el portal marca "última actualización 2025" — no se integra un dato viejo o roto. Deliberadamente NO
+          se usa precio scrapeado de portales, para que este perfil quede 100% independiente del scraping.</dd>
+
+        <dt>Riesgo climático (granizo)</dt>
+        <dd class="muted">Candidato de fuente identificado: climatología de granizo SMN + INTA, 93 estaciones
+          meteorológicas, frecuencia anual 1930–2019, compilada académicamente por INTA (Instituto de Clima y
+          Agua) y publicada en <em>Atmospheric Research</em> (2012). Licencia actual del dataset compilado es
+          CC BY-NC-SA (no comercial) — pendiente resolver acceso a los datos crudos del SMN o autorización de
+          uso comercial antes de integrar.</dd>
+      </dl>
+    </section>
+
+    <section class="regla" id="regla">
+      <h2>La regla que gobierna todo el dataset</h2>
+      <p><strong>Sin dato confirmado, la respuesta es "sin dato" — nunca un número adivinado.</strong> Cada
+        señal documentada arriba deja explícito qué zonas cubre y cuáles no, en vez de interpolar o asumir un
+        promedio regional.</p>
+      <p><strong>Las señales nunca se combinan en un score único inventado.</strong> Ponderar "delito contra la
+        propiedad" contra "homicidio" contra "riesgo sísmico" en un solo número es una decisión actuarial real
+        — le corresponde a quien lo usa, no a nosotros.</p>
+      <p><strong>Cero scraping.</strong> Las tres señales en producción vienen de fuentes oficiales públicas
+        (SNIC, INPRES) descargadas directamente — no hay dependencia de portales de terceros ni de su
+        disponibilidad.</p>
+    </section>
+
+    <footer class="notas">
+      Última verificación de fuentes: septiembre de 2026. Esta página describe el estado actual del dataset,
+      no un compromiso contractual de cobertura futura — la cobertura de cada señal se expande con el tiempo y
+      se documenta acá a medida que cambia.
+      <br /><br />
+      <a href="riesgo-seguros.html">&larr; Volver a Riesgo geográfico</a>
+    </footer>
+  </div>
+</body>
+</html>
