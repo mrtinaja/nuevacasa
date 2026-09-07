@@ -96,6 +96,7 @@ class MercadoLibreScraper(Scraper):
         "casa": "casas",
         "ph": "phs",
         "local": "locales",
+        "campo": "campos",  # confirmado en vivo: inmuebles.mercadolibre.com.ar/campos/venta/...
     }
     OPERACION_SLUGS = {"venta": "venta", "alquiler": "alquiler"}
 

@@ -1153,21 +1153,34 @@ function renderPaginacion(total, totalPaginas) {
   });
 }
 
+// A partir de 1 hectarea (10.000 m2) se muestra en "ha" en vez de m2 --
+// no es exclusivo de tipo_propiedad="campo" (un terreno grande tambien
+// se beneficia), es un umbral de magnitud. Sin esto, un campo de
+// decenas de miles de hectareas se veia como un numero de m2 de 8-9
+// cifras, ilegible (ej. "414190016 m2" en vez de "41.419 ha").
+function formatearSuperficie(m2) {
+  if (m2 >= 10000) {
+    const ha = m2 / 10000;
+    return `${ha.toLocaleString("es-AR", { maximumFractionDigits: 2 })} ha`;
+  }
+  return `${m2.toLocaleString("es-AR")} m&sup2;`;
+}
+
 function pillsSuperficie(p) {
   // Cubierta + descubierta solo cuando el portal realmente expone las
   // dos por separado (hoy: ZonaProp). Si solo hay cubierta (RE/MAX) o
   // solo el total generico (Argenprop), se muestra nada mas eso.
   if (p.superficie_cubierta_m2 && p.superficie_descubierta_m2) {
     return [
-      `<span>${p.superficie_cubierta_m2} m&sup2; cub.</span>`,
-      `<span>${p.superficie_descubierta_m2} m&sup2; descub.</span>`,
+      `<span>${formatearSuperficie(p.superficie_cubierta_m2)} cub.</span>`,
+      `<span>${formatearSuperficie(p.superficie_descubierta_m2)} descub.</span>`,
     ];
   }
   if (p.superficie_cubierta_m2) {
-    return [`<span>${p.superficie_cubierta_m2} m&sup2; cub.</span>`];
+    return [`<span>${formatearSuperficie(p.superficie_cubierta_m2)} cub.</span>`];
   }
   if (p.superficie_m2) {
-    return [`<span>${p.superficie_m2} m&sup2;</span>`];
+    return [`<span>${formatearSuperficie(p.superficie_m2)}</span>`];
   }
   return [];
 }

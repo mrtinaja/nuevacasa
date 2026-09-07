@@ -14,6 +14,7 @@ class TipoPropiedad(str, Enum):
     casa = "casa"
     ph = "ph"
     local = "local"
+    campo = "campo"  # terrenos rurales -- confirmado en vivo en los 4 portales (ver scrapers)
 
 
 class Moneda(str, Enum):

@@ -253,6 +253,7 @@ class ZonapropScraper(Scraper):
         "casa": "casas",
         "ph": "ph",
         "local": "locales-comerciales",
+        "campo": "campos",  # confirmado en vivo: campos-venta.html / campos-alquiler.html
     }
 
     def _build_url(self, filtros: Filtros, ubicacion: str | None = None) -> tuple[str, str | None]:

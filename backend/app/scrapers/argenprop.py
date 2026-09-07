@@ -80,6 +80,7 @@ class ArgenpropScraper(Scraper):
         "casa": "casas",
         "ph": "ph",
         "local": "locales-comerciales",
+        "campo": "campos",  # confirmado en vivo: /campos/venta/... (HTTP 200, sin redirect)
     }
     HEADERS = {
         "User-Agent": (

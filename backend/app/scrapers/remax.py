@@ -33,6 +33,8 @@ def _categoria(tipo_valor: str) -> str | None:
         return "ph"
     if tipo_valor == "local":
         return "local"
+    if tipo_valor == "campo":
+        return "campo"
     return None
 
 
