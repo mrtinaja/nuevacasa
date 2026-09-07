@@ -25,6 +25,7 @@ todavia):
 """
 
 from app.delitos import info_delitos
+from app.direccion_a_zona import zona_mas_cercana
 from app.homicidios import info_homicidios
 from app.riesgo_sismico import info_sismico
 
@@ -41,3 +42,21 @@ def perfil_riesgo_zona(ubicacion_slug: str) -> dict:
         "precio_mercado": None,  # TODO: Colegio de Escribanos / IDECOR, no integrado aun
         "riesgo_climatico": None,  # TODO: fuente a confirmar (SMN / INA)
     }
+
+
+def perfil_riesgo_direccion(direccion: str, contexto: str | None = None) -> dict | None:
+    """Mismo perfil que `perfil_riesgo_zona`, pero a partir de una
+    direccion en texto libre (el caso real de uso de una aseguradora:
+    tienen la direccion del asegurado, no un slug de NuevaCasa). Resuelve
+    la direccion a la zona curada mas cercana (`direccion_a_zona.py`,
+    aproximado por centroide) y devuelve el perfil de esa zona, mas los
+    datos de la resolucion (`zona_resuelta`) para que quede claro que no
+    es un match administrativo exacto. None si Nominatim no encontro
+    nada para la direccion."""
+    resuelta = zona_mas_cercana(direccion, contexto)
+    if resuelta is None:
+        return None
+
+    perfil = perfil_riesgo_zona(resuelta["slug"])
+    perfil["zona_resuelta"] = resuelta
+    return perfil

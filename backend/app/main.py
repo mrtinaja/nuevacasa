@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.geocodificar import geocodificar, sugerir
 from app.models import Filtros, SearchResponse
 from app.orchestrator import SCRAPERS, buscar
-from app.riesgo_seguros import perfil_riesgo_zona
+from app.riesgo_seguros import perfil_riesgo_direccion, perfil_riesgo_zona
 
 app = FastAPI(title="NuevaCasa API")
 
@@ -39,12 +39,25 @@ def search(filtros: Filtros) -> SearchResponse:
 
 
 @app.get("/api/riesgo-seguros")
-def riesgo_seguros(ubicacion: str):
-    """Prototipo: perfil de riesgo geografico por zona (delitos contra
-    la propiedad + homicidios dolosos + riesgo sismico, las tres de
-    fuente oficial), pensado para uso de aseguradoras -- no para el
-    buscador de propiedades. Ver `riesgo_seguros.py`."""
-    return perfil_riesgo_zona(ubicacion)
+def riesgo_seguros(ubicacion: str | None = None, direccion: str | None = None, contexto: str | None = None):
+    """Prototipo: perfil de riesgo geografico (delitos contra la
+    propiedad + homicidios dolosos + riesgo sismico, las tres de fuente
+    oficial), pensado para uso de aseguradoras -- no para el buscador de
+    propiedades. Ver `riesgo_seguros.py`.
+
+    Acepta `ubicacion` (slug de zona curada, ej. "palermo") O
+    `direccion` (texto libre, ej. "Av. Cabildo 2000, Belgrano" --
+    el caso real de uso de una aseguradora, que tiene la direccion del
+    asegurado, no un slug de NuevaCasa). Con `direccion`, la respuesta
+    incluye `zona_resuelta` con la zona a la que se aproximo y la
+    distancia -- no es un match administrativo exacto, ver
+    `direccion_a_zona.py`. `contexto` (opcional, solo aplica con
+    `direccion`) ayuda a desambiguar direcciones cortas, ej. pasarle
+    "Cordoba" para no resolver a otra provincia con el mismo nombre de
+    calle."""
+    if direccion:
+        return perfil_riesgo_direccion(direccion, contexto)
+    return perfil_riesgo_zona(ubicacion or "capital-federal")
 
 
 @app.get("/api/geocodificar")

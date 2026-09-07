@@ -54,6 +54,33 @@ class ArgenpropScraper(Scraper):
 
     name = "argenprop"
     BASE_URL = "https://www.argenprop.com"
+    # Confirmado en vivo (curl con sesion nueva, sin bloqueo de por
+    # medio) que el formato viejo de URL de este scraper --
+    # "departamento-venta-{ubicacion}", singular y con guiones -- ya no
+    # existe: Argenprop lo redirige (301) a "/departamentos/venta", el
+    # listado SIN NINGUN FILTRO de ubicacion. Asi se explica el bug
+    # encontrado buscando Villa Carlos Paz: devolvia avisos de Palermo
+    # (CABA) con status "ok", porque la pagina generica igual tiene
+    # resultados -- simplemente no son de la zona pedida. Probamos
+    # ademas "capital-federal" con el formato viejo: mismo redirect,
+    # mismo resultado generico -- el bug no era especifico de Cordoba,
+    # afectaba CUALQUIER busqueda con ubicacion en este scraper.
+    #
+    # El formato real actual (confirmado en vivo para tipo=departamento)
+    # es por path, no por guiones: "/departamentos/venta/{ubicacion}".
+    # El resto de TIPO_SLUGS se infiere por el mismo patron ya
+    # confirmado en ZonaProp (ver TIPO_SLUGS en zonaprop.py) -- no se
+    # pudo verificar en vivo "casa"/"ph"/"local" porque las pruebas
+    # sucesivas gatillaron el challenge de AWS WAF de Argenprop (ver
+    # `_obtener`, ya lo detecta via status 202 y lo reporta como
+    # bloqueo -- no se intenta resolver el challenge, eso si seria
+    # evadir un anti-bot activo).
+    TIPO_SLUGS = {
+        "departamento": "departamentos",
+        "casa": "casas",
+        "ph": "ph",
+        "local": "locales-comerciales",
+    }
     HEADERS = {
         "User-Agent": (
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -92,10 +119,8 @@ class ArgenpropScraper(Scraper):
 
     def _build_url(self, filtros: Filtros, ubicacion: str | None = None) -> str:
         ubicacion = (ubicacion if ubicacion is not None else filtros.ubicacion).strip("/").lower() or "capital-federal"
-        return (
-            f"{self.BASE_URL}/{filtros.tipo_propiedad.value}-"
-            f"{filtros.operacion.value}-{ubicacion}"
-        )
+        tipo = self.TIPO_SLUGS.get(filtros.tipo_propiedad.value, f"{filtros.tipo_propiedad.value}s")
+        return f"{self.BASE_URL}/{tipo}/{filtros.operacion.value}/{ubicacion}"
 
     def _extraer_features(self, item) -> tuple[float | None, int | None]:
         """Devuelve (superficie_m2, antiguedad_anios) leidos de card__main-features.
