@@ -72,12 +72,28 @@ class RemaxScraper(Scraper):
     Ubicacion: el filtro nativo del sitio se vio poco confiable en las
     pruebas (buscando "Capital Federal" aparecian avisos de Mendoza), asi
     que en vez de replicarlo se arma un filtro de texto client-side
-    contra `geoLabel` + `displayAddress` de cada resultado (ver
-    UBICACION_DISPLAY). Zona cardinal (zona-norte/oeste/sur): como ya se
-    trae TODO el pais en un solo pedido y se filtra en memoria, no hace
-    falta pedir de nuevo por cada partido como en ZonaProp/Argenprop/
-    MercadoLibre -- alcanza con matchear contra cualquiera de los
-    partidos de esa zona (ver zonas_cardinales.py).
+    contra `geoLabel` de cada resultado (ver UBICACION_DISPLAY). Zona
+    cardinal (zona-norte/oeste/sur): como ya se trae TODO el pais en un
+    solo pedido y se filtra en memoria, no hace falta pedir de nuevo por
+    cada partido como en ZonaProp/Argenprop/MercadoLibre -- alcanza con
+    matchear contra cualquiera de los partidos de esa zona (ver
+    zonas_cardinales.py).
+
+    **Ojo, bug real encontrado buscando "Belgrano"**: el filtro
+    matcheaba contra `geoLabel + displayAddress` juntos. `geoLabel` es
+    la clasificacion real de barrio/partido que usa RE/MAX (confiable:
+    "Caseros, Tres de Febrero, Buenos Aires" vs "Belgrano, Capital
+    Federal", bien distinguibles), pero `displayAddress` es el texto
+    crudo de la calle -- y "Belgrano" tambien es el nombre de una
+    avenida que cruza Caseros/Tres de Febrero, sin ninguna relacion con
+    el barrio porteno del mismo nombre. Combinar ambos textos hacia que
+    "Belgrano Gral. 4600" (una direccion en Caseros) matcheara una
+    busqueda de "Belgrano" (el barrio), mezclando avisos de zonas
+    opuestas de la ciudad en el mismo resultado -- y arrastrando el
+    centrado del mapa a un punto medio sin sentido entre ambos. Ahora
+    se matchea solo contra `geoLabel`, que ya viene con el
+    barrio/partido bien clasificado; `displayAddress` queda como
+    fallback unicamente para el puñado de avisos sin `geoLabel`.
     """
 
     name = "remax"
@@ -156,7 +172,13 @@ class RemaxScraper(Scraper):
                 continue
 
             if ubicaciones_buscadas:
-                texto_item = _normalizar(f"{item.get('geoLabel', '')} {item.get('displayAddress', '')}")
+                # Se matchea SOLO contra geoLabel cuando esta presente --
+                # es la clasificacion de barrio/partido de RE/MAX, mas
+                # confiable que el texto crudo de la calle (ver docstring
+                # de la clase, caso "Belgrano"). displayAddress solo entra
+                # como fallback para el puñado de avisos sin geoLabel.
+                geo_label = item.get("geoLabel") or ""
+                texto_item = _normalizar(geo_label) or _normalizar(item.get("displayAddress", ""))
                 if not any(u in texto_item for u in ubicaciones_buscadas):
                     continue
 
