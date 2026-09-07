@@ -101,7 +101,27 @@ body {
 }
 
 .site-header {
+  position: relative;
   margin-bottom: 2.25rem;
+}
+
+.nav-aseguradoras {
+  position: absolute;
+  top: 0.2rem;
+  right: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-dim);
+  text-decoration: none;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.4rem 0.85rem;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.nav-aseguradoras:hover {
+  color: var(--turquoise-bright);
+  border-color: var(--border-strong);
 }
 
 .logo {

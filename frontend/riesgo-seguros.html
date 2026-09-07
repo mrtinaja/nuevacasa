@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>NuevaCasa · Riesgo geografico para aseguradoras</title>
+<title>Riesgo geografico para aseguradoras · NuevaCasa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -11,84 +11,104 @@
   :root {
     --bg: #05080a;
     --panel: #0d1418;
+    --panel-2: #0a1114;
     --border: #1c262b;
+    --border-strong: #2a3a3d;
     --text: #e7f1f0;
     --muted: #8ba3a0;
+    --faint: #4c6866;
     --accent: #5eead4;
     --accent-2: #0891b2;
     --bajo: #34d399;
     --medio: #fbbf24;
     --alto: #f87171;
     --sin-dato: #4b5a5f;
+    --amber: #f2c94c;
   }
   * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
   body {
     margin: 0;
     background: var(--bg);
     color: var(--text);
     font-family: "Inter", system-ui, sans-serif;
-    padding: 2rem 1.25rem 4rem;
+    line-height: 1.5;
   }
-  .shell { max-width: 760px; margin: 0 auto; }
-  h1 {
-    font-family: "Space Grotesk", sans-serif;
-    font-size: 1.6rem;
-    margin: 0 0 0.35rem;
+  .shell { max-width: 900px; margin: 0 auto; padding: 1.5rem 1.25rem 5rem; }
+  h1, h2, h3 { font-family: "Space Grotesk", sans-serif; }
+  .accent { color: var(--accent); }
+  a { color: var(--accent); }
+
+  /* nav */
+  .topnav {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0.5rem 0 1.75rem;
   }
-  h1 .accent { color: var(--accent); }
-  .subtitle { color: var(--muted); margin: 0 0 0.25rem; }
+  .topnav a {
+    color: var(--muted); text-decoration: none; font-size: 0.85rem;
+    border: 1px solid var(--border); border-radius: 999px; padding: 0.4rem 0.85rem;
+  }
+  .topnav a:hover { color: var(--accent); border-color: var(--border-strong); }
+  .topnav .brand { font-size: 0.9rem; color: var(--faint); }
+
+  /* hero */
+  .hero { padding: 1.5rem 0 3rem; }
   .tag {
-    display: inline-block;
-    margin: 0.75rem 0 1.75rem;
-    padding: 0.3rem 0.7rem;
-    border: 1px solid var(--accent-2);
-    border-radius: 999px;
-    font-size: 0.78rem;
-    color: var(--accent);
-    letter-spacing: 0.02em;
+    display: inline-block; margin: 0 0 1.1rem; padding: 0.3rem 0.7rem;
+    border: 1px solid var(--accent-2); border-radius: 999px;
+    font-size: 0.78rem; color: var(--accent); letter-spacing: 0.03em;
   }
+  h1.title { font-size: clamp(1.8rem, 4vw, 2.6rem); font-weight: 700; margin: 0 0 0.9rem; line-height: 1.15; }
+  .lede { font-size: 1.05rem; color: var(--muted); max-width: 640px; margin: 0 0 0; }
+
+  section { padding: 2.75rem 0; border-top: 1px solid var(--border); }
+  section:first-of-type { border-top: none; }
+  .eyebrow {
+    font-size: 0.75rem; font-weight: 700; letter-spacing: 0.12em;
+    color: var(--accent); text-transform: uppercase; margin: 0 0 0.5rem;
+  }
+  h2.section-title { font-size: 1.5rem; margin: 0 0 1.5rem; }
+
+  /* señales */
+  .senal-row {
+    display: flex; align-items: center; gap: 1rem;
+    background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+    padding: 0.9rem 1.1rem; margin-bottom: 0.6rem;
+  }
+  .senal-row .nombre { flex: 1 1 auto; }
+  .senal-row .nombre strong { display: block; font-size: 0.95rem; }
+  .senal-row .nombre span { font-size: 0.8rem; color: var(--muted); }
+  .estado-pill {
+    font-size: 0.72rem; font-weight: 700; letter-spacing: 0.03em;
+    padding: 0.3rem 0.7rem; border-radius: 999px; white-space: nowrap;
+  }
+  .estado-pill.on { background: rgba(52,211,153,0.15); color: var(--bajo); }
+  .estado-pill.off { background: rgba(194,164,39,0.15); color: var(--amber); }
+
+  /* demo */
   .panel {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 1.25rem;
-    margin-bottom: 1.25rem;
+    background: var(--panel); border: 1px solid var(--border); border-radius: 14px;
+    padding: 1.25rem; margin-bottom: 1.25rem;
   }
   label { display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 0.4rem; }
   select, button {
-    width: 100%;
-    padding: 0.7rem 0.85rem;
-    border-radius: 9px;
-    border: 1px solid var(--border);
-    background: #0a1114;
-    color: var(--text);
-    font-size: 0.95rem;
-    font-family: inherit;
+    width: 100%; padding: 0.7rem 0.85rem; border-radius: 9px;
+    border: 1px solid var(--border); background: var(--panel-2); color: var(--text);
+    font-size: 0.95rem; font-family: inherit;
   }
   button {
-    margin-top: 0.9rem;
-    background: linear-gradient(120deg, var(--accent), var(--accent-2));
-    color: #05080a;
-    font-weight: 600;
-    border: none;
-    cursor: pointer;
+    margin-top: 0.9rem; background: linear-gradient(120deg, var(--accent), var(--accent-2));
+    color: #05080a; font-weight: 600; border: none; cursor: pointer;
   }
   button:disabled { opacity: 0.6; cursor: default; }
   .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1rem; }
   .card {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 1.1rem;
+    background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 1.1rem;
   }
-  .card h3 { margin: 0 0 0.6rem; font-size: 0.95rem; color: var(--muted); font-weight: 500; }
+  .card h3 { margin: 0 0 0.6rem; font-size: 0.95rem; color: var(--muted); font-weight: 500; font-family: "Inter", sans-serif; }
   .badge {
-    display: inline-block;
-    padding: 0.25rem 0.65rem;
-    border-radius: 999px;
-    font-weight: 600;
-    font-size: 0.85rem;
-    text-transform: capitalize;
+    display: inline-block; padding: 0.25rem 0.65rem; border-radius: 999px;
+    font-weight: 600; font-size: 0.85rem; text-transform: capitalize;
   }
   .badge.bajo, .badge.reducida, .badge.muy_reducida { background: rgba(52,211,153,0.15); color: var(--bajo); }
   .badge.medio, .badge.moderada { background: rgba(251,191,36,0.15); color: var(--medio); }
@@ -96,57 +116,233 @@
   .badge.sin-dato { background: rgba(75,90,95,0.25); color: var(--muted); }
   .detalle { margin-top: 0.5rem; font-size: 0.85rem; color: var(--muted); }
   .pendiente { font-size: 0.85rem; color: var(--muted); font-style: italic; }
-  footer { margin-top: 1.5rem; font-size: 0.78rem; color: var(--muted); line-height: 1.5; }
-  #resultado { display: none; }
+  #resultado { display: none; margin-top: 1.25rem; }
+
+  /* hallazgo */
+  .hallazgo {
+    display: grid; grid-template-columns: 1fr 1.4fr; gap: 1.5rem;
+    background: var(--panel); border: 1px solid var(--border); border-radius: 16px; padding: 1.75rem;
+  }
+  .hallazgo .stat-label { font-size: 0.75rem; color: var(--muted); letter-spacing: 0.05em; }
+  .hallazgo .stat-num { font-size: 3.5rem; font-weight: 700; color: var(--accent); line-height: 1; margin: 0.3rem 0; }
+  .hallazgo .stat-sub { font-size: 0.95rem; }
+  .hallazgo .contraste { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-strong); font-size: 0.9rem; color: var(--muted); font-style: italic; }
+  .hallazgo .callout {
+    background: #14203e; border-radius: 12px; padding: 1rem 1.15rem; margin-top: 1rem;
+  }
+  .hallazgo .callout .eyebrow { color: var(--amber); margin-bottom: 0.4rem; }
+  .hallazgo .callout p { margin: 0; font-size: 0.92rem; }
+
+  /* alcance */
+  .alcance-row {
+    display: grid; grid-template-columns: 180px 1fr; gap: 1rem; align-items: baseline;
+    padding: 0.7rem 0; border-bottom: 1px solid var(--border);
+  }
+  .alcance-row:last-child { border-bottom: none; }
+  .alcance-row .prod { font-weight: 600; font-size: 0.95rem; }
+  .alcance-row .desc { font-size: 0.85rem; color: var(--muted); }
+  .alcance-grupo-titulo { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.05em; margin: 1.5rem 0 0.4rem; }
+  .alcance-grupo-titulo.fuerte { color: var(--bajo); }
+  .alcance-grupo-titulo.posible { color: var(--amber); }
+  .alcance-grupo-titulo.no { color: var(--faint); }
+
+  /* diferenciacion */
+  table.dif { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+  table.dif th { text-align: left; font-size: 0.75rem; color: var(--muted); font-weight: 600; padding-bottom: 0.6rem; border-bottom: 1px solid var(--border); }
+  table.dif td { padding: 0.8rem 0.6rem 0.8rem 0; border-bottom: 1px solid var(--border); vertical-align: top; color: var(--muted); }
+  table.dif td:first-child { padding-left: 0; font-weight: 600; color: var(--text); white-space: nowrap; }
+  table.dif tr.us td { color: var(--bajo); }
+  table.dif tr.us td:first-child { color: var(--bajo); }
+
+  /* cta */
+  .cta {
+    background: linear-gradient(135deg, #0d1f22, #0a1620);
+    border: 1px solid var(--border-strong); border-radius: 16px;
+    padding: 2rem; text-align: center;
+  }
+  .cta h2 { margin: 0 0 0.6rem; }
+  .cta p { color: var(--muted); margin: 0 0 1.25rem; }
+  .cta a.boton {
+    display: inline-block; background: linear-gradient(120deg, var(--accent), var(--accent-2));
+    color: #05080a; font-weight: 700; text-decoration: none;
+    padding: 0.8rem 1.6rem; border-radius: 10px; font-size: 0.95rem;
+  }
+
+  footer.notas { margin-top: 1.5rem; font-size: 0.78rem; color: var(--faint); line-height: 1.6; }
+
+  @media (max-width: 640px) {
+    .hallazgo { grid-template-columns: 1fr; }
+    .alcance-row { grid-template-columns: 1fr; gap: 0.2rem; }
+  }
 </style>
 </head>
 <body>
   <div class="shell">
-    <h1>Nueva<span class="accent">Casa</span> · Riesgo geografico</h1>
-    <p class="subtitle">Perfil de riesgo por zona, para uso de aseguradoras (suscripcion / tarificacion / cumulo).</p>
-    <span class="tag">PROTOTIPO · fuentes 100% oficiales, sin scraping</span>
+    <nav class="topnav">
+      <a href="index.html">&larr; NuevaCasa</a>
+      <span class="brand">Motor de Riesgo Geografico</span>
+    </nav>
 
-    <div class="panel">
-      <label for="ubicacion">Zona</label>
-      <select id="ubicacion"></select>
-      <button id="consultar">Consultar perfil de riesgo</button>
-    </div>
+    <section class="hero">
+      <span class="tag">PARA ASEGURADORAS · fuentes 100% oficiales, sin scraping</span>
+      <h1 class="title">El riesgo real de cada zona,<br />cruzado de fuentes oficiales.</h1>
+      <p class="lede">
+        Delito contra la propiedad, homicidios dolosos y riesgo sismico por barrio o partido,
+        armado con datos publicos del SNIC y del INPRES. Pensado para tarificacion,
+        suscripcion y gestion de cumulo geografico — no es un buscador de propiedades.
+      </p>
+    </section>
 
-    <div id="resultado" class="grid">
-      <div class="card">
-        <h3>Delitos contra la propiedad (2024)</h3>
-        <div id="delito-badge"></div>
-        <div id="delito-detalle" class="detalle"></div>
-      </div>
-      <div class="card">
-        <h3>Homicidios dolosos (2024)</h3>
-        <div id="homicidios-badge"></div>
-        <div id="homicidios-detalle" class="detalle"></div>
-      </div>
-      <div class="card">
-        <h3>Riesgo sismico (INPRES)</h3>
-        <div id="sismico-badge"></div>
-        <div id="sismico-detalle" class="detalle"></div>
-      </div>
-      <div class="card">
-        <h3>Precio real de mercado</h3>
-        <p class="pendiente">Pendiente de integrar (fuente oficial en evaluacion: Colegio de Escribanos / IDECOR).</p>
-      </div>
-      <div class="card">
-        <h3>Riesgo climatico</h3>
-        <p class="pendiente">Pendiente de integrar (fuente en evaluacion: SMN / INA).</p>
-      </div>
-    </div>
+    <section id="dato">
+      <p class="eyebrow">El dato</p>
+      <h2 class="section-title">Tres señales en producción, dos en camino</h2>
 
-    <footer>
-      Fuentes: delitos contra la propiedad y homicidios dolosos, SNIC
-      (Ministerio de Seguridad de la Nacion, dos datasets distintos --
-      datos.gob.ar/dataset/seguridad_9 y .../homicidios-dolosos-sistema-de-alerta-temprana).
-      Riesgo sismico, INPRES-CIRSOC 103 (zonificacion oficial, cobertura
-      parcial: solo zonas confirmadas por fuente). Homicidios cubre por
-      ahora Buenos Aires + CABA. Cobertura de cada senal varia por zona
-      -- "sin dato" es honesto, no un cero.
-    </footer>
+      <div class="senal-row">
+        <div class="nombre"><strong>Delitos contra la propiedad</strong><span>SNIC, Ministerio de Seguridad de la Nación — 2024</span></div>
+        <span class="estado-pill on">EN PRODUCCIÓN</span>
+      </div>
+      <div class="senal-row">
+        <div class="nombre"><strong>Homicidios dolosos</strong><span>SNIC, dataset separado — riesgo de vida, no de bien</span></div>
+        <span class="estado-pill on">EN PRODUCCIÓN</span>
+      </div>
+      <div class="senal-row">
+        <div class="nombre"><strong>Riesgo sísmico</strong><span>INPRES-CIRSOC 103, zonificación oficial, escala 0 a 4</span></div>
+        <span class="estado-pill on">EN PRODUCCIÓN</span>
+      </div>
+      <div class="senal-row">
+        <div class="nombre"><strong>Precio real de mercado</strong><span>Colegio de Escribanos / IDECOR — fuente en evaluación</span></div>
+        <span class="estado-pill off">EN CAMINO</span>
+      </div>
+      <div class="senal-row">
+        <div class="nombre"><strong>Riesgo climático (granizo)</strong><span>SMN / INTA — candidato de fuente identificado</span></div>
+        <span class="estado-pill off">EN CAMINO</span>
+      </div>
+
+      <p class="detalle" style="margin-top:1rem;">
+        Regla del proyecto: ninguna señal se inventa. Si no hay dato oficial confirmado para
+        una zona, la respuesta dice "sin dato" — nunca un número adivinado. Y no se combinan
+        las señales en un score único: el peso de cada una depende del producto de seguro
+        (hogar, vida), esa ponderación la define quien lo usa, no nosotros.
+      </p>
+    </section>
+
+    <section id="probalo">
+      <p class="eyebrow">Probalo en vivo</p>
+      <h2 class="section-title">Elegí una zona y mirá el perfil real</h2>
+
+      <div class="panel">
+        <label for="ubicacion">Zona</label>
+        <select id="ubicacion"></select>
+        <button id="consultar">Consultar perfil de riesgo</button>
+      </div>
+
+      <div id="resultado" class="grid">
+        <div class="card">
+          <h3>Delitos contra la propiedad (2024)</h3>
+          <div id="delito-badge"></div>
+          <div id="delito-detalle" class="detalle"></div>
+        </div>
+        <div class="card">
+          <h3>Homicidios dolosos (2024)</h3>
+          <div id="homicidios-badge"></div>
+          <div id="homicidios-detalle" class="detalle"></div>
+        </div>
+        <div class="card">
+          <h3>Riesgo sísmico (INPRES)</h3>
+          <div id="sismico-badge"></div>
+          <div id="sismico-detalle" class="detalle"></div>
+        </div>
+        <div class="card">
+          <h3>Precio real de mercado</h3>
+          <p class="pendiente">Pendiente de integrar (fuente oficial en evaluación: Colegio de Escribanos / IDECOR).</p>
+        </div>
+        <div class="card">
+          <h3>Riesgo climático</h3>
+          <p class="pendiente">Pendiente de integrar (fuente en evaluación: SMN / INTA).</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="hallazgo">
+      <p class="eyebrow">Un hallazgo real</p>
+      <h2 class="section-title">Por qué separar las señales no es un capricho técnico</h2>
+
+      <div class="hallazgo">
+        <div>
+          <div class="stat-label">MORENO, PROVINCIA DE BUENOS AIRES</div>
+          <div class="stat-num">4º</div>
+          <div class="stat-sub">de 78 partidos bonaerenses en homicidios dolosos, 2024</div>
+          <div class="contraste">Pero en delitos contra la propiedad, Moreno queda a mitad de tabla — "nivel medio".</div>
+        </div>
+        <div>
+          <p style="margin-top:0;">
+            Cruzar "pérdida de un bien" y "muerte violenta" en un solo número habría
+            escondido esto. Separar las señales es lo que permite ver que Moreno es de
+            bajo riesgo para un producto y de alto riesgo para otro.
+          </p>
+          <div class="callout">
+            <p class="eyebrow">Esto abre una segunda línea de producto</p>
+            <p>
+              Homicidios pesa directo en el riesgo de mortalidad del asegurado. La misma
+              infraestructura de datos sirve hoy a Riesgos/Actuaría de hogar (delito +
+              sísmico) y, sin construir nada nuevo, a la de vida / saldo deudor (homicidios).
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="alcance">
+      <p class="eyebrow">Alcance</p>
+      <h2 class="section-title">Un mismo dato, múltiples líneas de seguro</h2>
+
+      <p class="alcance-grupo-titulo fuerte">FIT FUERTE — YA VALIDADO O DIRECTO CON EL DATO ACTUAL</p>
+      <div class="alcance-row"><div class="prod">Hogar / Combinado</div><div class="desc">Tarificación por zona + valor asegurado real — el caso base del proyecto.</div></div>
+      <div class="alcance-row"><div class="prod">Comercios / Pyme</div><div class="desc">Mismo perfil que hogar, escala comercial — extensión directa, sin dato nuevo.</div></div>
+      <div class="alcance-row"><div class="prod">Vida (indiv./col.)</div><div class="desc">Riesgo de mortalidad por zona — el hallazgo Moreno de arriba.</div></div>
+      <div class="alcance-row"><div class="prod">Saldo deudor</div><div class="desc">Mortalidad del titular + valor real del colateral (la propiedad).</div></div>
+
+      <p class="alcance-grupo-titulo posible">FIT POSIBLE — REQUIERE SUMAR O DESAGREGAR UNA FUENTE</p>
+      <div class="alcance-row"><div class="prod">Automotor</div><div class="desc">El SNIC ya trae "robo de automotores" aparte, hoy sumado al agregado — desagregarlo es barato, mismo CSV.</div></div>
+      <div class="alcance-row"><div class="prod">Agro (granizo)</div><div class="desc">~US$250M/año en primas, 98% concentrado en granizo. Candidato de fuente (SMN/INTA) ya identificado, licencia a confirmar.</div></div>
+      <div class="alcance-row"><div class="prod">Transporte de cargas</div><div class="desc">"Robo de carga" no está en el dataset actual — haría falta una fuente nueva, no confirmada.</div></div>
+
+      <p class="alcance-grupo-titulo no">NO ES BUEN FIT — EL RIESGO NO DEPENDE DE LA ZONA</p>
+      <div class="alcance-row"><div class="prod">RC / Caución · ART</div><div class="desc">Dependen de la contraparte o del rubro/puesto de trabajo, no del barrio del asegurado — no forzamos el fit acá.</div></div>
+    </section>
+
+    <section id="diferenciacion">
+      <p class="eyebrow">Por qué nosotros</p>
+      <h2 class="section-title">Cuatro empresas hacen algo parecido. Ninguna hace esto.</h2>
+
+      <table class="dif">
+        <thead><tr><th></th><th>Escala / foco</th><th>Lo que NO cubre</th></tr></thead>
+        <tbody>
+          <tr><td>Verisk</td><td>Modelos catastróficos globales — huracanes, terremotos a escala continental</td><td>Granularidad hiperlocal argentina: delito, homicidio y sísmico por barrio</td></tr>
+          <tr><td>Roomix</td><td>Buscador de propiedades con IA, US$500K levantados, 380K visitas/mes</td><td>No vende dato de riesgo a aseguradoras — es búsqueda, no suscripción</td></tr>
+          <tr><td>Verifik</td><td>Verificación de identidad (KYC/AML) — documentos, biometría, listas de sanciones</td><td>No mide el riesgo de un lugar, mide quién es una persona — otra capa</td></tr>
+          <tr><td>pueblo.ar</td><td>Ranking público de inseguridad con datos SNIC — misma fuente que usamos</td><td>Es contenido para el público, no una API vendida a aseguradoras</td></tr>
+          <tr class="us"><td>Nosotros</td><td>3 señales hiperlocales, 100% oficiales, vendidas como API a Riesgos/Actuaría</td><td>—</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="contacto" style="border-top: none;">
+      <div class="cta">
+        <h2>¿Hablamos de tu caso?</h2>
+        <p>Buscamos la primera conversación real con Riesgos o Actuaría de una aseguradora — qué compran hoy, a quién, a qué precio.</p>
+        <a class="boton" href="mailto:valentinborobio112@gmail.com?subject=Riesgo%20geografico%20para%20aseguradoras">Escribinos</a>
+      </div>
+
+      <footer class="notas">
+        Prototipo en producción, no un producto comercial cerrado — el modelo de negocio y
+        el precio se terminan de definir con la primera aseguradora real. Fuentes: SNIC
+        (Ministerio de Seguridad de la Nación, datasets de delitos contra la propiedad y de
+        homicidios dolosos, Sistema de Alerta Temprana); INPRES-CIRSOC 103 (zonificación
+        sísmica oficial). Cobertura de cada señal varía por zona — "sin dato" es honesto,
+        no un cero.
+      </footer>
+    </section>
   </div>
 
 <script>
@@ -226,6 +422,7 @@ async function consultar() {
       (info) => `Zona sismica ${info.zona} (INPRES-CIRSOC 103, escala 0 a 4).`);
 
     document.getElementById("resultado").style.display = "grid";
+    document.getElementById("resultado").scrollIntoView({ behavior: "smooth", block: "nearest" });
   } catch (e) {
     alert("No se pudo conectar con el backend. ¿Esta corriendo en " + API_URL + "?");
   } finally {
