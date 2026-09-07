@@ -135,9 +135,15 @@ class InfoHomicidios(BaseModel):
     nivel: str  # "bajo" | "medio" | "alto" -- terciles relativos, no un estandar externo
 
 
+class CentroZona(BaseModel):
+    lat: float
+    lon: float
+
+
 class SearchResponse(BaseModel):
     propiedades: list[Propiedad]
     portales: list[PortalResultado]
     delitos_zona: Optional[InfoDelitos] = None  # solo Buenos Aires provincia por ahora
     riesgo_sismico: Optional[InfoSismico] = None  # cobertura parcial, ver backend/app/riesgo_sismico.py
     homicidios_zona: Optional[InfoHomicidios] = None  # cobertura parcial (Buenos Aires + CABA), ver backend/app/homicidios.py
+    centro_zona: Optional[CentroZona] = None  # centroide de la zona elegida (ubicaciones_geo.py) -- para centrar el mapa aunque no haya avisos con coordenadas

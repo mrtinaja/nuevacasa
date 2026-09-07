@@ -326,6 +326,16 @@ input[type="number"]::-webkit-inner-spin-button {
   font-weight: 700;
 }
 
+.select-option.sugerencia-cargando {
+  cursor: default;
+  color: var(--text-dim, #9aa5b1);
+  font-style: italic;
+}
+
+.select-option.sugerencia-cargando:hover {
+  background: none;
+}
+
 /* ---------- toggle "mas filtros" ---------- */
 
 .link-btn {

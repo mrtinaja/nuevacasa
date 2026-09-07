@@ -5,7 +5,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from app.delitos import info_delitos
 from app.historial import registrar_y_enriquecer
 from app.homicidios import info_homicidios
-from app.models import Filtros, InfoDelitos, InfoHomicidios, InfoSismico, PortalResultado, Propiedad, SearchResponse
+from app.models import CentroZona, Filtros, InfoDelitos, InfoHomicidios, InfoSismico, PortalResultado, Propiedad, SearchResponse
 from app.precio_justo import marcar_buen_precio
 from app.riesgo_sismico import info_sismico
 from app.scrapers.argenprop import ArgenpropScraper
@@ -13,6 +13,7 @@ from app.scrapers.base import ScraperBloqueado, ScraperNoImplementado
 from app.scrapers.mercadolibre import MercadoLibreScraper
 from app.scrapers.remax import RemaxScraper
 from app.scrapers.zonaprop import ZonapropScraper
+from app.ubicaciones_geo import centroide
 
 SCRAPERS = {
     s.name: s
@@ -107,10 +108,14 @@ def buscar(filtros: Filtros) -> SearchResponse:
     datos_homicidios = info_homicidios(filtros.ubicacion)
     homicidios_zona = InfoHomicidios(**datos_homicidios) if datos_homicidios else None
 
+    punto_zona = centroide(filtros.ubicacion)
+    centro_zona = CentroZona(lat=punto_zona[0], lon=punto_zona[1]) if punto_zona else None
+
     return SearchResponse(
         propiedades=propiedades,
         portales=resultados_portal,
         delitos_zona=delitos_zona,
         riesgo_sismico=riesgo_sismico,
         homicidios_zona=homicidios_zona,
+        centro_zona=centro_zona,
     )

@@ -218,6 +218,8 @@ let vistaActual = "lista";
 // centrar el mapa ahi, independiente de si algun aviso matcheo.
 let direccionBuscadaCoords = null;
 let marcadorDireccionBuscada = null;
+let centroZonaActual = null; // centroide de la zona elegida (resultado.centro_zona) -- centra el mapa aunque no haya avisos con coordenadas
+let centroZonaEsProvincial = false; // true = "toda la provincia" elegida -- el mapa deberia alejarse mas que para un barrio/partido puntual
 
 function normalizarTexto(texto) {
   return (texto || "")
@@ -336,6 +338,11 @@ let sugerenciaDireccionElegida = null;
       return;
     }
     debounceId = setTimeout(async () => {
+      // El backend (Render free tier) puede tardar hasta ~25s en
+      // "despertar" si estuvo inactivo -- sin este aviso el campo se ve
+      // roto (no pasa nada) durante esa espera en vez de estar cargando.
+      listboxEl.innerHTML = `<li class="select-option sugerencia-cargando" aria-disabled="true">Buscando direcciones...</li>`;
+      listboxEl.hidden = false;
       const sugerencias = await sugerirDirecciones(texto, contextoUbicacionActual());
       // Si el usuario ya siguio escribiendo mientras esperaba la
       // respuesta, esta ya no vale -- evita que una respuesta vieja y
@@ -752,6 +759,8 @@ form.addEventListener("submit", async (ev) => {
     renderDelitosZona(resultado.delitos_zona);
     renderRiesgoSismico(resultado.riesgo_sismico);
     renderHomicidiosZona(resultado.homicidios_zona);
+    centroZonaActual = resultado.centro_zona ?? null;
+    centroZonaEsProvincial = Boolean(resultado.delitos_zona?.es_agregado_provincial);
 
     const direccionTexto = formData.get("direccion")?.trim() ?? "";
     const propiedadesFiltradas = filtrarPorDireccion(resultado.propiedades, direccionTexto);
@@ -1055,6 +1064,12 @@ function renderMapa(propiedades) {
   if (conUbicacion.length === 0) {
     if (direccionBuscadaCoords) {
       mapaLeaflet.setView([direccionBuscadaCoords.lat, direccionBuscadaCoords.lon], 16);
+    } else if (centroZonaActual) {
+      // Salta a la zona elegida en el buscador (provincia/partido/barrio)
+      // aunque ningun aviso encontrado traiga coordenadas propias -- sin
+      // esto el mapa se quedaba clavado en el centro de CABA sin importar
+      // que zona se haya buscado.
+      mapaLeaflet.setView([centroZonaActual.lat, centroZonaActual.lon], centroZonaEsProvincial ? 8 : 13);
     } else {
       mapaLeaflet.setView([-34.6037, -58.3816], 12);
     }
