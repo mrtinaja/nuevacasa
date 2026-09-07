@@ -158,8 +158,8 @@ class ZonapropScraper(Scraper):
     Mismo endurecimiento anti-bloqueo que Argenprop (ver ese scraper):
     sesion persistente (cookies entre pedidos), un pedido de
     "calentamiento" al home antes del primer pedido real, headers mas
-    completos (no solo User-Agent), y un reintento con espera corta si
-    la primera respuesta viene bloqueada. No hay garantia de que
+    completos (no solo User-Agent), y reintentos con espera creciente
+    si la respuesta viene bloqueada o sin datos. No hay garantia de que
     alcance -- si el bloqueo de ZonaProp es por reputacion de la IP (no
     por patron de pedido), esto no lo va a arreglar -- pero es la misma
     mitigacion legitima que ya funciono parcialmente en Argenprop, asi
@@ -187,8 +187,15 @@ class ZonapropScraper(Scraper):
         "sec-fetch-site": "same-origin",
         "Upgrade-Insecure-Requests": "1",
     }
-    REINTENTOS = 1
-    ESPERA_REINTENTO_SEG = 2
+    # Subido de 1 a 2 reintentos (y de una espera fija a creciente,
+    # 2s/5s) porque el bloqueo observado en produccion es intermitente
+    # -- la misma ubicacion a veces responde bien y a veces no en
+    # pedidos consecutivos, asi que insistir un poco mas antes de darse
+    # por vencido recupera casos que con un solo reintento se perdian.
+    # Mitigacion legitima (esperar e insistir), no evasion -- si el
+    # bloqueo es sostenido esto sigue fallando igual, como corresponde.
+    REINTENTOS = 2
+    ESPERAS_REINTENTO_SEG = [2, 5]
 
     def __init__(self):
         super().__init__()
@@ -205,22 +212,40 @@ class ZonapropScraper(Scraper):
             pass  # si falla el calentamiento seguimos igual con el request real
         self._calentado = True
 
-    def _obtener(self, url: str) -> requests.Response:
+    def _obtener(self, url: str) -> dict:
+        """Devuelve el `__PRELOADED_STATE__` ya parseado. Reintenta tanto
+        en codigos de bloqueo explicitos (403/202/429) como cuando la
+        respuesta viene 200 pero sin el bloque de datos esperado --
+        confirmado en vivo que esto ultimo tambien es intermitente (un
+        interstitial/captcha ocasional, no siempre), asi que antes se
+        tiraba la toalla en el primer 200 "vacio" sin aprovechar el resto
+        del presupuesto de reintentos."""
         intentos = self.REINTENTOS + 1
-        ultima_resp = None
+        ultimo_motivo = None
         for intento in range(intentos):
             if intento > 0:
-                time.sleep(self.ESPERA_REINTENTO_SEG)
+                time.sleep(self.ESPERAS_REINTENTO_SEG[intento - 1])
             try:
                 resp = self._session.get(url, timeout=15)
             except requests.RequestException as exc:
                 raise ScraperBloqueado(f"error de red contactando ZonaProp: {exc}") from exc
-            if resp.status_code not in (403, 202, 429):
-                return resp
-            ultima_resp = resp
+
+            if resp.status_code in (403, 202, 429):
+                ultimo_motivo = f"HTTP {resp.status_code} (probable bloqueo anti-bot)"
+                continue
+            if resp.status_code != 200:
+                ultimo_motivo = f"HTTP {resp.status_code} inesperado"
+                continue
+
+            state = _extraer_preloaded_state(resp.text)
+            if state is None:
+                ultimo_motivo = "200 sin el bloque de datos esperado (posible captcha/interstitial)"
+                continue
+            return state
+
         raise ScraperBloqueado(
-            f"ZonaProp devolvio HTTP {ultima_resp.status_code} "
-            f"(probable bloqueo anti-bot, reintentar mas tarde -- ya se reintento {self.REINTENTOS} vez/veces)"
+            f"ZonaProp: {ultimo_motivo} -- reintentar mas tarde "
+            f"(ya se reintento {self.REINTENTOS} vez/veces)"
         )
 
     TIPO_SLUGS = {
@@ -305,16 +330,7 @@ class ZonapropScraper(Scraper):
     def _buscar_una_ubicacion(self, filtros: Filtros, ubicacion: str) -> list[Propiedad]:
         self._calentar_sesion()
         url, amenity_en_url = self._build_url(filtros, ubicacion)
-        resp = self._obtener(url)
-
-        if resp.status_code != 200:
-            raise ScraperBloqueado(f"ZonaProp devolvio HTTP {resp.status_code} inesperado")
-
-        state = _extraer_preloaded_state(resp.text)
-        if state is None:
-            # La pagina puede devolver un interstitial/captcha con 200 pero
-            # sin el bloque de datos esperado.
-            raise ScraperBloqueado("ZonaProp no devolvio el bloque de datos esperado (posible captcha)")
+        state = self._obtener(url)
 
         postings = state.get("listStore", {}).get("listPostings", [])
         resultados: list[Propiedad] = []
