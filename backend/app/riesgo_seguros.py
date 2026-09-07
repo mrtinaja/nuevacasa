@@ -3,11 +3,15 @@
 mercado" para el contexto de negocio).
 
 Cruza las fuentes oficiales ya integradas -- delitos contra la
-propiedad (SNIC) y riesgo sismico (INPRES) -- en una sola respuesta.
-Deliberadamente NO combina esto en un score unico inventado: pesar
-"delito" contra "riesgo sismico" en un solo numero es una decision
-actuarial real, no algo que corresponda decidir aca sin validarlo con
-quien lo va a usar. Se devuelven las dos senales por separado.
+propiedad (SNIC), homicidios dolosos (SNIC) y riesgo sismico (INPRES)
+-- en una sola respuesta. Deliberadamente NO combina esto en un score
+unico inventado: pesar "delito contra la propiedad" contra "homicidio"
+contra "riesgo sismico" en un solo numero es una decision actuarial
+real, no algo que corresponda decidir aca sin validarlo con quien lo
+va a usar. Se devuelven las tres senales por separado -- para una
+aseguradora de vida/saldo deudor, homicidios pesa directo en el riesgo
+de mortalidad del asegurado; para una de hogar, pesa poco frente a
+delitos contra la propiedad y riesgo sismico.
 
 **Lo que falta para que esto sea un producto real** (no integrado
 todavia):
@@ -21,6 +25,7 @@ todavia):
 """
 
 from app.delitos import info_delitos
+from app.homicidios import info_homicidios
 from app.riesgo_sismico import info_sismico
 
 
@@ -31,6 +36,7 @@ def perfil_riesgo_zona(ubicacion_slug: str) -> dict:
     return {
         "ubicacion": ubicacion_slug,
         "delitos_contra_la_propiedad": info_delitos(ubicacion_slug),
+        "homicidios_dolosos": info_homicidios(ubicacion_slug),
         "riesgo_sismico": info_sismico(ubicacion_slug),
         "precio_mercado": None,  # TODO: Colegio de Escribanos / IDECOR, no integrado aun
         "riesgo_climatico": None,  # TODO: fuente a confirmar (SMN / INA)

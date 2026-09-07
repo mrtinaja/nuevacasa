@@ -846,6 +846,20 @@ input[type="number"]::-webkit-inner-spin-button {
 .punto-leyenda.punto-medio { background: var(--warning); }
 .punto-leyenda.punto-alto { background: var(--danger); }
 
+/* Pin de la direccion buscada -- deliberadamente distinto de los
+   circulos de propiedad (turquesa/gris) y de los colores de la capa de
+   delitos (verde/amarillo/rojo), para que no se confunda con ninguno
+   de los otros dos sistemas de color del mapa. */
+.marcador-direccion-pin {
+  width: 16px;
+  height: 16px;
+  border-radius: 50% 50% 50% 0;
+  background: #f472b6;
+  border: 2px solid var(--bg);
+  transform: rotate(-45deg);
+  box-shadow: 0 0 0 2px #f472b6;
+}
+
 .popup-mapa {
   font-family: "Inter", sans-serif;
   min-width: 180px;

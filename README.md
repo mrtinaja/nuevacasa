@@ -418,6 +418,103 @@ porque es una escala totalmente distinta a una localidad puntual.
   cargadas (no un estandar externo) -- si se agregan mas localidades
   convendria recalcularlos.
 
+## Homicidios dolosos por zona (`backend/app/homicidios.py`)
+
+Dimension SEPARADA de "Delitos contra la propiedad" de arriba -- ese
+mide robos/hurtos, este mide violencia letal. Un partido puede ser
+"medio" en uno y "alto" en el otro: no se combinan en un solo numero
+porque pesar "perdida de un bien" contra "muerte violenta" en un unico
+score seria una decision actuarial arbitraria, no algo que corresponda
+inventar sin validarlo con quien lo va a usar (mismo criterio que
+`riesgo_sismico.py`, ver mas abajo).
+
+**Por que existe**: revisando el mapa, "Moreno: medio" en delitos
+contra la propiedad llamaba la atencion por sentido comun -- Moreno
+tiene fama de zona complicada. La razon real: Moreno es **4to de 78**
+partidos bonaerenses en homicidios dolosos 2024 (SNIC), pero queda a
+mitad de tabla en delitos contra la propiedad. Son rankings genuinamente
+distintos con la misma fuente oficial, no un error de carga.
+
+Fuente: SNIC, pero un **dataset propio y distinto** al de delitos
+contra la propiedad -- "Homicidios dolosos, Sistema de Alerta Temprana
+(HD)" (datos.gob.ar/dataset/homicidios-dolosos-sistema-de-alerta-temprana-estadisticas-criminales-en-la-republica-argentina,
+CSV "SAT-HD-BU.csv"). Es microdato (una fila por victima y otra por
+imputado de cada hecho) -- se cuenta `cant_vic` de las filas "Victima"
+unicas por `id_hecho`, para no duplicar. **Ojo, formato de codigo
+distinto**: este archivo usa `provincia_id`/`departamento_id` SIN cero
+a la izquierda ("6" en vez de "06"), a diferencia del dataset de
+delitos contra la propiedad -- mismo organismo, convencion de codigo
+distinta.
+
+**Cobertura, a proposito parcial**: por ahora Buenos Aires (31
+partidos/localidades, mismo set que la seccion anterior) y CABA (15
+comunas, mismo mapeo Ley 1777). El resto de las provincias curadas
+todavia no se cargo -- se prioriza donde nacio la pregunta (Moreno)
+antes de expandir al resto del pais. Terciles calculados sobre las 46
+localidades cargadas (`_CORTE_BAJO=3`, `_CORTE_MEDIO=12`).
+
+Badge propio en el buscador ("Homicidios dolosos: Alta/Media/Baja"), al
+lado de "Incidencia de inseguridad" -- mismo componente visual
+(`.delitos-zona`), mismo criterio de "sin numeros en pantalla, detalle
+en el tooltip" que la seccion anterior.
+
+## Riesgo sismico y perfil para aseguradoras (`backend/app/riesgo_sismico.py`, `backend/app/riesgo_seguros.py`)
+
+Tercera senal de riesgo, tambien independiente de las dos anteriores:
+zonificacion sismica oficial INPRES-CIRSOC 103 (escala 0 a 4, de "muy
+reducida" a "muy elevada"), segun la maxima aceleracion de suelo
+esperada para un sismo de diseno. **Cobertura parcial a proposito**:
+solo se cargaron las localidades/provincias donde la fuente confirma
+la zona explicitamente (ver el docstring completo de
+`riesgo_sismico.py` para el detalle exacto por provincia y las
+salvedades donde se muestra el maximo confirmado en vez de esconder el
+dato). Mismo badge visual que las otras dos senales.
+
+**Perfil combinado para aseguradoras** (`GET /api/riesgo-seguros?ubicacion=<slug>`,
+demo standalone en `frontend/riesgo-seguros.html`): junta las tres
+senales oficiales (delitos contra la propiedad, homicidios dolosos,
+riesgo sismico) en una sola respuesta, sin combinarlas en un score
+unico por la misma razon de siempre -- ademas, cada tipo de seguro le
+da un peso distinto a cada senal (una aseguradora de **hogar** mira
+sobre todo delitos contra la propiedad y riesgo sismico; una de **vida
+o saldo deudor hipotecario** mira homicidios, porque violencia letal
+en la zona es un factor de riesgo de mortalidad real y actuarialmente
+valido para quien vive ahi). Es un prototipo/demo para explorar vender
+este dato a companias de seguro reusando la infraestructura de
+NuevaCasa -- no esta integrado a ningun flujo de venta real. Todavia
+faltan precio real de mercado (fuente en evaluacion: Colegio de
+Escribanos / IDECOR) y riesgo climatico (SMN / INA).
+
+## Buscador por direccion (`backend/app/geocodificar.py`)
+
+Campo "Direccion" en la seccion principal del formulario (no en "Mas
+filtros"). Los 4 portales **no soportan buscar por direccion puntual**
+-- solo por zona/barrio (ver seccion "Ubicacion" mas abajo) -- asi que
+esto NO se manda como filtro al backend de busqueda. Hace dos cosas
+distintas, las dos del lado del cliente sobre lo que ya trajo la
+busqueda por zona:
+
+1. **Filtra la lista**: compara el texto escrito (sin acentos,
+   minusculas) contra `direccion`/`titulo` de cada aviso ya traido.
+   Cliente-side puro, sin pedir de nuevo a los portales.
+2. **Centra el mapa ahi**: geocodifica la direccion EN VIVO con
+   Nominatim (`GET /api/geocodificar?direccion=...&contexto=...`,
+   `contexto` es la Zona+Provincia ya elegidas, para desambiguar
+   direcciones cortas tipo "Cabildo 2000") y muestra un pin propio
+   (rosa, `.marcador-direccion-pin`) en el mapa, con su propio color a
+   proposito distinto de los 3 sistemas de color que ya conviven ahi
+   (verde/amarillo/rojo de delitos, turquesa/gris de precio). Pasa
+   independientemente de si algun aviso matcheo el filtro de texto --
+   sirve para ubicarse en el mapa aunque no haya resultados exactos en
+   esa direccion puntual.
+
+Distinto de `ubicaciones_geo.py` (centroides de zonas curadas,
+precalculados una sola vez): una direccion escrita a mano no se puede
+precargar de antemano, se resuelve en el momento. Nominatim pide un
+User-Agent identificable en su politica de uso y tiene un limite
+informal de 1 pedido/segundo -- aceptable para un buscador personal,
+no pensado para trafico de produccion real.
+
 ## UI: mapa y vista de calles/satelite
 
 Ademas de la grilla de tarjetas, los resultados se pueden ver en un

@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.geocodificar import geocodificar
 from app.models import Filtros, SearchResponse
 from app.orchestrator import SCRAPERS, buscar
 from app.riesgo_seguros import perfil_riesgo_zona
@@ -39,7 +40,18 @@ def search(filtros: Filtros) -> SearchResponse:
 
 @app.get("/api/riesgo-seguros")
 def riesgo_seguros(ubicacion: str):
-    """Prototipo: perfil de riesgo geografico por zona (delitos + riesgo
-    sismico, ambos de fuente oficial), pensado para uso de aseguradoras
-    -- no para el buscador de propiedades. Ver `riesgo_seguros.py`."""
+    """Prototipo: perfil de riesgo geografico por zona (delitos contra
+    la propiedad + homicidios dolosos + riesgo sismico, las tres de
+    fuente oficial), pensado para uso de aseguradoras -- no para el
+    buscador de propiedades. Ver `riesgo_seguros.py`."""
     return perfil_riesgo_zona(ubicacion)
+
+
+@app.get("/api/geocodificar")
+def geocodificar_endpoint(direccion: str, contexto: str | None = None):
+    """Geocodifica en vivo una direccion escrita por el usuario en el
+    buscador (Nominatim) -- para centrar el mapa ahi. Ver
+    `geocodificar.py`. Devuelve `null` si no se encontro nada, nunca un
+    error 4xx/5xx por eso (una direccion sin match es un caso normal,
+    no una falla)."""
+    return geocodificar(direccion, contexto)

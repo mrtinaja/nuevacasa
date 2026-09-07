@@ -4,7 +4,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from app.delitos import info_delitos
 from app.historial import registrar_y_enriquecer
-from app.models import Filtros, InfoDelitos, InfoSismico, PortalResultado, Propiedad, SearchResponse
+from app.homicidios import info_homicidios
+from app.models import Filtros, InfoDelitos, InfoHomicidios, InfoSismico, PortalResultado, Propiedad, SearchResponse
 from app.precio_justo import marcar_buen_precio
 from app.riesgo_sismico import info_sismico
 from app.scrapers.argenprop import ArgenpropScraper
@@ -103,9 +104,13 @@ def buscar(filtros: Filtros) -> SearchResponse:
     datos_sismico = info_sismico(filtros.ubicacion)
     riesgo_sismico = InfoSismico(**datos_sismico) if datos_sismico else None
 
+    datos_homicidios = info_homicidios(filtros.ubicacion)
+    homicidios_zona = InfoHomicidios(**datos_homicidios) if datos_homicidios else None
+
     return SearchResponse(
         propiedades=propiedades,
         portales=resultados_portal,
         delitos_zona=delitos_zona,
         riesgo_sismico=riesgo_sismico,
+        homicidios_zona=homicidios_zona,
     )

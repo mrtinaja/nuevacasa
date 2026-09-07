@@ -70,6 +70,11 @@
             <select id="ubicacion" name="ubicacion"></select>
           </div>
 
+          <div class="campo campo-direccion">
+            <label for="direccion" title="Filtra los avisos de la zona elegida por calle/direccion, y centra el mapa ahi">Direccion</label>
+            <input type="text" id="direccion" name="direccion" placeholder="Ej: Av. Cabildo 2000" autocomplete="off" />
+          </div>
+
           <div class="campo">
             <label for="precio_min">Precio min</label>
             <input type="text" inputmode="numeric" class="input-precio" id="precio_min" name="precio_min" />
@@ -227,6 +232,7 @@
 
       <div class="badges-riesgo">
         <div id="delitos-zona" class="delitos-zona" tabindex="0" hidden></div>
+        <div id="homicidios-zona" class="delitos-zona" tabindex="0" hidden></div>
         <div id="riesgo-sismico" class="delitos-zona" tabindex="0" hidden></div>
       </div>
 

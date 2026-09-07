@@ -8,6 +8,9 @@ const ES_LOCAL = location.hostname === "localhost" || location.hostname === "127
 const API_URL = ES_LOCAL
   ? "http://localhost:8000/api/search"
   : "https://nuevacasa.onrender.com/api/search";
+const GEOCODIFICAR_URL = ES_LOCAL
+  ? "http://localhost:8000/api/geocodificar"
+  : "https://nuevacasa.onrender.com/api/geocodificar";
 
 // Respaldo opcional: la IP de Render es de datacenter y ZonaProp/
 // MercadoLibre la bloquean seguido (confirmado: el mismo bloqueo pasa
@@ -204,6 +207,40 @@ const RESULTADOS_POR_PAGINA = 12;
 let propiedadesActuales = [];
 let paginaActual = 1;
 let vistaActual = "lista";
+
+// Buscador por direccion: los portales no soportan buscar por
+// direccion puntual (solo por zona/barrio, ver README) -- se filtra
+// del lado del cliente sobre lo que ya trajo la busqueda por zona, y
+// aparte se geocodifica (Nominatim, backend/app/geocodificar.py) para
+// centrar el mapa ahi, independiente de si algun aviso matcheo.
+let direccionBuscadaCoords = null;
+let marcadorDireccionBuscada = null;
+
+function normalizarTexto(texto) {
+  return (texto || "")
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase();
+}
+
+function filtrarPorDireccion(propiedades, direccion) {
+  const texto = normalizarTexto(direccion).trim();
+  if (!texto) return propiedades;
+  return propiedades.filter((p) => normalizarTexto(`${p.direccion ?? ""} ${p.titulo ?? ""}`).includes(texto));
+}
+
+async function geocodificarDireccion(direccion, contexto) {
+  if (!direccion) return null;
+  try {
+    const params = new URLSearchParams({ direccion });
+    if (contexto) params.set("contexto", contexto);
+    const resp = await fetch(`${GEOCODIFICAR_URL}?${params.toString()}`);
+    if (!resp.ok) return null;
+    return await resp.json();
+  } catch (err) {
+    return null;
+  }
+}
 let mapaLeaflet = null;
 let marcadoresLayer = null;
 let capaCalles = null;
@@ -228,6 +265,7 @@ const resultadosEl = document.getElementById("resultados");
 const paginacionEl = document.getElementById("paginacion");
 const delitosZonaEl = document.getElementById("delitos-zona");
 const riesgoSismicoEl = document.getElementById("riesgo-sismico");
+const homicidiosZonaEl = document.getElementById("homicidios-zona");
 const destacadosWrapEl = document.getElementById("destacados-wrap");
 const destacadosEl = document.getElementById("destacados");
 const toggleVistaEl = document.getElementById("toggle-vista");
@@ -490,6 +528,7 @@ async function completarConTunel(resultadoRender, filtros) {
       portales,
       delitos_zona: resultadoRender.delitos_zona,
       riesgo_sismico: resultadoRender.riesgo_sismico,
+      homicidios_zona: resultadoRender.homicidios_zona,
     };
   } catch (err) {
     // Tunel no disponible (PC apagada, ngrok caido, timeout) -- se sigue
@@ -584,7 +623,28 @@ form.addEventListener("submit", async (ev) => {
     renderPortales(resultado.portales);
     renderDelitosZona(resultado.delitos_zona);
     renderRiesgoSismico(resultado.riesgo_sismico);
-    renderResultados(resultado.propiedades);
+    renderHomicidiosZona(resultado.homicidios_zona);
+
+    const direccionTexto = formData.get("direccion")?.trim() ?? "";
+    const propiedadesFiltradas = filtrarPorDireccion(resultado.propiedades, direccionTexto);
+
+    if (direccionTexto) {
+      const provinciaTexto = provinciaSelect.options[provinciaSelect.selectedIndex]?.textContent ?? "";
+      // El indice 0 de "Zona" siempre es la opcion agregada ("Todos los
+      // barrios"/"Toda la provincia", ver poblarZonas) -- no es un
+      // nombre de lugar real, meterlo en la consulta de Nominatim rompe
+      // la geocodificacion en vez de ayudarla a desambiguar.
+      const zonaTexto = ubicacionSelect.selectedIndex > 0
+        ? ubicacionSelect.options[ubicacionSelect.selectedIndex]?.textContent ?? ""
+        : "";
+      const contexto = [zonaTexto, provinciaTexto].filter(Boolean).join(", ");
+      const geo = await geocodificarDireccion(direccionTexto, contexto);
+      direccionBuscadaCoords = geo ? { lat: geo.lat, lon: geo.lon, nombre: direccionTexto } : null;
+    } else {
+      direccionBuscadaCoords = null;
+    }
+
+    renderResultados(propiedadesFiltradas);
   } catch (err) {
     estadoPortales.innerHTML = `<span class="badge badge-error">Error: ${escapeHtml(err.message)}</span>`;
   }
@@ -669,6 +729,23 @@ function renderRiesgoSismico(sismico) {
   riesgoSismicoEl.innerHTML = `
     <span class="punto" aria-hidden="true"></span>
     <span>${texto}</span>
+  `;
+}
+
+const HOMICIDIOS_TOOLTIP =
+  "Homicidios dolosos 2024, dimension separada de la incidencia de delitos contra la propiedad -- una zona puede ser media en robos y alta en violencia letal, o al reves. Fuente: SNIC, Ministerio de Seguridad de la Nacion. Cobertura parcial: Buenos Aires y CABA por ahora.";
+
+function renderHomicidiosZona(homicidios) {
+  if (!homicidios) {
+    homicidiosZonaEl.hidden = true;
+    return;
+  }
+  homicidiosZonaEl.hidden = false;
+  homicidiosZonaEl.className = `delitos-zona nivel-${homicidios.nivel}`;
+  homicidiosZonaEl.dataset.tooltip = HOMICIDIOS_TOOLTIP;
+  homicidiosZonaEl.innerHTML = `
+    <span class="punto" aria-hidden="true"></span>
+    <span>Homicidios dolosos: <strong>${NIVEL_LABEL[homicidios.nivel]}</strong></span>
   `;
 }
 
@@ -825,9 +902,30 @@ function renderMapa(propiedades) {
   }
 
   marcadoresLayer.clearLayers();
+  if (marcadorDireccionBuscada) {
+    mapaLeaflet.removeLayer(marcadorDireccionBuscada);
+    marcadorDireccionBuscada = null;
+  }
+
+  if (direccionBuscadaCoords) {
+    marcadorDireccionBuscada = L.marker([direccionBuscadaCoords.lat, direccionBuscadaCoords.lon], {
+      icon: L.divIcon({
+        className: "marcador-direccion",
+        html: '<div class="marcador-direccion-pin"></div>',
+        iconSize: [18, 18],
+        iconAnchor: [9, 9],
+      }),
+    })
+      .bindPopup(`<div class="popup-mapa"><strong>${escapeHtml(direccionBuscadaCoords.nombre)}</strong></div>`)
+      .addTo(mapaLeaflet);
+  }
 
   if (conUbicacion.length === 0) {
-    mapaLeaflet.setView([-34.6037, -58.3816], 12);
+    if (direccionBuscadaCoords) {
+      mapaLeaflet.setView([direccionBuscadaCoords.lat, direccionBuscadaCoords.lon], 16);
+    } else {
+      mapaLeaflet.setView([-34.6037, -58.3816], 12);
+    }
     return;
   }
 
@@ -857,7 +955,9 @@ function renderMapa(propiedades) {
     marcadoresLayer.addLayer(marcador);
   });
 
-  mapaLeaflet.fitBounds(conUbicacion.map((p) => [p.lat, p.lon]), { padding: [30, 30], maxZoom: 15 });
+  const puntos = conUbicacion.map((p) => [p.lat, p.lon]);
+  if (direccionBuscadaCoords) puntos.push([direccionBuscadaCoords.lat, direccionBuscadaCoords.lon]);
+  mapaLeaflet.fitBounds(puntos, { padding: [30, 30], maxZoom: 15 });
   setTimeout(() => mapaLeaflet.invalidateSize(), 50);
 }
 

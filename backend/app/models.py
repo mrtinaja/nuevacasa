@@ -130,8 +130,14 @@ class InfoSismico(BaseModel):
     nota: Optional[str] = None  # explica el agregado cuando es_agregado_provincial=True
 
 
+class InfoHomicidios(BaseModel):
+    hechos_2024: int
+    nivel: str  # "bajo" | "medio" | "alto" -- terciles relativos, no un estandar externo
+
+
 class SearchResponse(BaseModel):
     propiedades: list[Propiedad]
     portales: list[PortalResultado]
     delitos_zona: Optional[InfoDelitos] = None  # solo Buenos Aires provincia por ahora
     riesgo_sismico: Optional[InfoSismico] = None  # cobertura parcial, ver backend/app/riesgo_sismico.py
+    homicidios_zona: Optional[InfoHomicidios] = None  # cobertura parcial (Buenos Aires + CABA), ver backend/app/homicidios.py

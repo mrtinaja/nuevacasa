@@ -119,6 +119,11 @@
         <div id="delito-detalle" class="detalle"></div>
       </div>
       <div class="card">
+        <h3>Homicidios dolosos (2024)</h3>
+        <div id="homicidios-badge"></div>
+        <div id="homicidios-detalle" class="detalle"></div>
+      </div>
+      <div class="card">
         <h3>Riesgo sismico (INPRES)</h3>
         <div id="sismico-badge"></div>
         <div id="sismico-detalle" class="detalle"></div>
@@ -134,10 +139,13 @@
     </div>
 
     <footer>
-      Fuentes: delitos contra la propiedad, SNIC (Ministerio de Seguridad de la Nacion),
-      datos.gob.ar/dataset/seguridad_9. Riesgo sismico, INPRES-CIRSOC 103
-      (zonificacion oficial, cobertura parcial: solo zonas confirmadas por fuente).
-      Cobertura de cada senal varia por zona -- "sin dato" es honesto, no un cero.
+      Fuentes: delitos contra la propiedad y homicidios dolosos, SNIC
+      (Ministerio de Seguridad de la Nacion, dos datasets distintos --
+      datos.gob.ar/dataset/seguridad_9 y .../homicidios-dolosos-sistema-de-alerta-temprana).
+      Riesgo sismico, INPRES-CIRSOC 103 (zonificacion oficial, cobertura
+      parcial: solo zonas confirmadas por fuente). Homicidios cubre por
+      ahora Buenos Aires + CABA. Cobertura de cada senal varia por zona
+      -- "sin dato" es honesto, no un cero.
     </footer>
   </div>
 
@@ -210,6 +218,9 @@ async function consultar() {
       (info) => info.es_agregado_provincial
         ? `${info.hechos_2024.toLocaleString("es-AR")} hechos en 2024 (toda la provincia).`
         : `${info.hechos_2024.toLocaleString("es-AR")} hechos en 2024.`);
+
+    pintarBadge("homicidios-badge", "homicidios-detalle", data.homicidios_dolosos, "nivel",
+      (info) => `${info.hechos_2024.toLocaleString("es-AR")} homicidios dolosos en 2024.`);
 
     pintarBadge("sismico-badge", "sismico-detalle", data.riesgo_sismico, "nivel",
       (info) => `Zona sismica ${info.zona} (INPRES-CIRSOC 103, escala 0 a 4).`);
