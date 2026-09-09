@@ -228,8 +228,8 @@ label {
 }
 
 .campo-ayuda {
-  margin: 0;
-  font-size: 0.72rem;
+  margin: 0.9rem 0 0;
+  font-size: 0.78rem;
   color: var(--text-faint);
 }
 
