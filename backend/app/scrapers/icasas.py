@@ -292,15 +292,21 @@ class IcasasScraper(Scraper):
             datos_ga = ga_listings.get(li.get("id") or "", {})
 
             precio = _parse_float(datos_ga.get("price"))
-            # "price":1.0 es un relleno de icasas para avisos sin precio
-            # publicado ("Consultar precio") -- gAListings esta pensado
-            # para analytics (GA4 exige un numero, no null), no es un
-            # precio real. Confirmado en vivo viendo el mismo aviso en
-            # el sitio: dice "Consultar precio", no "USD 1". Sin este
-            # chequeo colaba como el precio mas bajo de la busqueda
-            # (marcaba falso "Buen precio" y arruinaba la mediana de
-            # precio/m2 de TODOS los portales, no solo icasas).
-            if precio is not None and precio <= 1:
+            # gAListings trae basura de precio de vez en cuando --
+            # confirmado en vivo "price":1.0 (relleno de icasas para
+            # avisos "Consultar precio": GA4 exige un numero, no null,
+            # el sitio muestra "Consultar precio", no "USD 1") y
+            # tambien "price":97.27 en un depto de 111 m2 (sin
+            # explicacion clara, pero un departamento a la venta por
+            # USD 97 no existe). En vez de perseguir cada caso puntual,
+            # se descarta cualquier precio por debajo de un piso
+            # imposible para una propiedad real -- ningun aviso real de
+            # venta/alquiler de este proyecto (departamento/casa/ph/
+            # local) baja de USD 1.000. Sin este chequeo, un precio
+            # basura colaba como el mas bajo de la busqueda (marcaba
+            # falso "Buen precio" y arruinaba la mediana de precio/m2
+            # de TODOS los portales, no solo icasas).
+            if precio is not None and precio < 1000:
                 precio = None
             moneda = datos_ga.get("currency")
             titulo = datos_ga.get("item_name") or "Sin titulo"

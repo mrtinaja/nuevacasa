@@ -706,6 +706,11 @@ button.badge.badge-filtro-activo {
   scroll-snap-type: x mandatory;
   scroll-behavior: smooth;
   padding-bottom: 0.25rem;
+  /* Nunca son mas de 3 tarjetas (top3 en renderDestacados) -- centradas
+     cuando entran todas en el ancho disponible; si no entran (pantallas
+     angostas), justify-content no afecta el scroll, se puede seguir
+     desplazando igual. */
+  justify-content: center;
 }
 
 .destacados-row::-webkit-scrollbar { height: 6px; }
