@@ -247,7 +247,24 @@ function normalizarTexto(texto) {
 function filtrarPorDireccion(propiedades, direccion) {
   const texto = normalizarTexto(direccion).trim();
   if (!texto) return propiedades;
-  return propiedades.filter((p) => normalizarTexto(`${p.direccion ?? ""} ${p.titulo ?? ""}`).includes(texto));
+
+  // Ademas de la frase completa, se intenta matchear por la ultima
+  // palabra "significativa" (4+ letras, no un numero de altura) --
+  // confirmado en vivo con un caso real: el desplegable de sugerencias
+  // completo "Doctor Carlos Casazza" (nombre oficial de Nominatim) no
+  // matcheaba ningun aviso porque el portal escribe la misma calle
+  // como "Doctor Casazza" (sin "Carlos") -- la frase entera nunca iba a
+  // aparecer literal en el texto del aviso. La ultima palabra suele ser
+  // el apellido/parte mas distintiva de la calle, mas tolerante a que
+  // cada fuente (Nominatim vs. como lo tipeo el publicador del aviso)
+  // escriba el nombre completo distinto.
+  const palabras = texto.split(/\s+/).filter(Boolean);
+  const ultimaPalabra = [...palabras].reverse().find((p) => p.length >= 4 && !/^\d+$/.test(p));
+
+  return propiedades.filter((p) => {
+    const campo = normalizarTexto(`${p.direccion ?? ""} ${p.titulo ?? ""}`);
+    return campo.includes(texto) || (ultimaPalabra && campo.includes(ultimaPalabra));
+  });
 }
 
 async function geocodificarDireccion(direccion, contexto) {
