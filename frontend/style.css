@@ -356,6 +356,21 @@ input[type="number"]::-webkit-inner-spin-button {
   background: none;
 }
 
+.select-option.sugerencia-direccion {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.sugerencia-principal {
+  font-weight: 600;
+}
+
+.sugerencia-secundaria {
+  font-size: 0.78em;
+  color: var(--text-dim);
+}
+
 /* ---------- toggle "mas filtros" ---------- */
 
 .link-btn {
@@ -1050,6 +1065,7 @@ input[type="number"]::-webkit-inner-spin-button {
   background: linear-gradient(135deg, rgba(45, 212, 191, 0.08), transparent 55%);
   opacity: 0;
   transition: opacity 0.18s ease;
+  pointer-events: none; /* puramente decorativo -- sin esto tapaba los clicks de "Ver en mapa"/"Ver aviso" (inset:0 lo deja arriba de todo el contenido de la tarjeta) */
 }
 
 .card-propiedad:hover {
@@ -1202,3 +1218,15 @@ input[type="number"]::-webkit-inner-spin-button {
 @media (max-width: 560px) {
   .subtitle, .tagline { margin-left: 0; }
 }
+
+/* Dos acciones independientes por tarjeta: "Ver en mapa" salta a esa
+   propiedad puntual en el mapa, "Ver aviso" abre el portal original. */
+.card-acciones { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin-top: 16px; }
+.card-ver-mapa { border: 0; background: transparent; color: #2dd4bf; padding: 0; font-family: inherit; font-size: .85rem; line-height: 1.4; font-weight: 600; cursor: pointer; }
+.card-ver-mapa:focus-visible { outline: 2px solid #2dd4bf; outline-offset: 2px; border-radius: 4px; }
+.card-ver-mapa:disabled { color: var(--text-muted); cursor: default; }
+.card-ver-aviso { color: var(--text); font-size: .85rem; white-space: nowrap; }
+
+.destacados-aclaracion { color: var(--text-muted); font-size: .85rem; margin: 0 0 16px; line-height: 1.5; }
+
+.card-sin-mapa { color: #94a3b8; font-size: .78rem; font-weight: 400; line-height: 1.4; }

@@ -210,6 +210,7 @@ const RESULTADOS_POR_PAGINA = 12;
 let propiedadesActuales = [];
 let paginaActual = 1;
 let vistaActual = "lista";
+let propiedadMapaSeleccionada = null;
 
 // Buscador por direccion: los portales no soportan buscar por
 // direccion puntual (solo por zona/barrio, ver README) -- se filtra
@@ -219,7 +220,7 @@ let vistaActual = "lista";
 let direccionBuscadaCoords = null;
 let marcadorDireccionBuscada = null;
 let centroZonaActual = null; // centroide de la zona elegida (resultado.centro_zona) -- centra el mapa aunque no haya avisos con coordenadas
-let centroZonaEsProvincial = false; // true = "toda la provincia" elegida -- el mapa deberia alejarse mas que para un barrio/partido puntual
+let centroZonaZoom = 13; // zoom a usar junto con centroZonaActual -- ver calculo en el submit del form
 
 function normalizarTexto(texto) {
   return (texto || "")
@@ -307,8 +308,18 @@ let sugerenciaDireccionElegida = null;
       cerrarSugerencias();
       return;
     }
+    // principal/secundaria ya vienen calculados del backend (ver
+    // geocodificar.py, _partir_nombre) a partir del address estructurado
+    // de Nominatim -- mas confiable que cortar el display_name por comas
+    // del lado del cliente, que fallaba cuando Nominatim antepone un
+    // nombre de POI/edificio antes de la calle real.
     listboxEl.innerHTML = sugerencias
-      .map((s) => `<li class="select-option" role="option">${escapeHtml(s.nombre)}</li>`)
+      .map(
+        (s) => `<li class="select-option sugerencia-direccion" role="option">
+          <span class="sugerencia-principal">${escapeHtml(s.principal)}</span>
+          ${s.secundaria ? `<span class="sugerencia-secundaria">${escapeHtml(s.secundaria)}</span>` : ""}
+        </li>`
+      )
       .join("");
     [...listboxEl.children].forEach((li, i) => {
       li.addEventListener("click", () => elegirSugerencia(i));
@@ -321,11 +332,8 @@ let sugerenciaDireccionElegida = null;
   function elegirSugerencia(indice) {
     const s = sugerenciasActuales[indice];
     if (!s) return;
-    // Primer tramo de display_name de Nominatim (ej. "Avenida Cabildo
-    // 2000, Belgrano") -- mas corto y legible que la cadena completa
-    // con provincia/pais/codigo postal repetidos.
-    direccionInput.value = s.nombre.split(",").slice(0, 2).join(",").trim();
-    sugerenciaDireccionElegida = { lat: s.lat, lon: s.lon, nombre: direccionInput.value };
+    direccionInput.value = s.principal;
+    sugerenciaDireccionElegida = { lat: s.lat, lon: s.lon, nombre: s.principal };
     cerrarSugerencias();
   }
 
@@ -1078,8 +1086,12 @@ document.getElementById("toggle-delitos").addEventListener("click", () => {
   else mapaLeaflet.removeLayer(capaDelitos);
 });
 
+function tieneCoordenadas(p) {
+  return Number.isFinite(p.lat) && Number.isFinite(p.lon) && Math.abs(p.lat) <= 90 && Math.abs(p.lon) <= 180;
+}
+
 function renderMapa(propiedades) {
-  const conUbicacion = propiedades.filter((p) => typeof p.lat === "number" && typeof p.lon === "number");
+  const conUbicacion = propiedades.filter(tieneCoordenadas);
 
   mapaNotaEl.textContent = `El mapa muestra ${conUbicacion.length} de ${propiedades.length} avisos -- solo ZonaProp y RE/MAX traen ubicacion exacta.`;
 
@@ -1134,13 +1146,14 @@ function renderMapa(propiedades) {
       // aunque ningun aviso encontrado traiga coordenadas propias -- sin
       // esto el mapa se quedaba clavado en el centro de CABA sin importar
       // que zona se haya buscado.
-      mapaLeaflet.setView([centroZonaActual.lat, centroZonaActual.lon], centroZonaEsProvincial ? 8 : 13);
+      mapaLeaflet.setView([centroZonaActual.lat, centroZonaActual.lon], centroZonaZoom);
     } else {
       mapaLeaflet.setView([-34.6037, -58.3816], 12);
     }
     return;
   }
 
+  let marcadorSeleccionado = null;
   conUbicacion.forEach((p) => {
     // Paleta a proposito distinta de COLOR_NIVEL (verde/amarillo/rojo
     // de la capa de delitos) -- "buen precio" usaba el mismo amarillo
@@ -1165,11 +1178,17 @@ function renderMapa(propiedades) {
       </div>
     `);
     marcadoresLayer.addLayer(marcador);
+    if (p === propiedadMapaSeleccionada) marcadorSeleccionado = marcador;
   });
 
   const puntos = conUbicacion.map((p) => [p.lat, p.lon]);
   if (direccionBuscadaCoords) puntos.push([direccionBuscadaCoords.lat, direccionBuscadaCoords.lon]);
   mapaLeaflet.fitBounds(puntos, { padding: [30, 30], maxZoom: 15 });
+  if (marcadorSeleccionado) {
+    mapaLeaflet.setView(marcadorSeleccionado.getLatLng(), 16);
+    marcadorSeleccionado.openPopup();
+  }
+  propiedadMapaSeleccionada = null;
   setTimeout(() => mapaLeaflet.invalidateSize(), 50);
 }
 
@@ -1288,7 +1307,7 @@ function tarjetaHTML(p, i) {
         : "";
 
       return `
-    <a class="card-propiedad" style="--stagger-delay: ${retraso}ms" href="${escapeHtml(p.url)}" target="_blank" rel="noopener">
+    <article class="card-propiedad" style="--stagger-delay: ${retraso}ms">
       <div class="thumb-box${p.imagen_url ? "" : " thumb-fallback"}">
         ${thumb}
       </div>
@@ -1299,12 +1318,17 @@ function tarjetaHTML(p, i) {
         <p class="direccion">${escapeHtml(p.direccion ?? p.barrio ?? "")}</p>
         ${destacados ? `<div class="destacados">${destacados}</div>` : ""}
         <div class="features">${features}</div>
+        <div class="card-acciones">
+          ${tieneCoordenadas(p) ? `<button type="button" class="card-ver-mapa" data-indice="${i}">Ver en mapa</button>` : `<span class="card-sin-mapa" title="Este aviso no incluye coordenadas válidas para ubicar la propiedad en el mapa.">Aviso sin coordenadas</span>`}
+          <a class="card-ver-aviso" href="${escapeHtml(p.url)}" target="_blank" rel="noopener">Ver aviso ↗</a>
+        </div>
       </div>
-    </a>`;
+    </article>`;
 }
 
 function renderTarjetas(propiedades) {
   resultadosEl.innerHTML = propiedades.map(tarjetaHTML).join("");
+  conectarTarjetas(resultadosEl, propiedades);
 }
 
 function renderDestacados(propiedades) {
@@ -1315,6 +1339,7 @@ function renderDestacados(propiedades) {
 
   destacadosWrapEl.hidden = top3.length === 0;
   destacadosEl.innerHTML = top3.map(tarjetaHTML).join("");
+  conectarTarjetas(destacadosEl, top3);
   destacadosEl.scrollTo({ left: 0 });
 }
 
@@ -1324,3 +1349,19 @@ document.querySelector(".destacados-flecha-izq").addEventListener("click", () =>
 document.querySelector(".destacados-flecha-der").addEventListener("click", () => {
   destacadosEl.scrollBy({ left: 300, behavior: "smooth" });
 });
+
+function conectarTarjetas(contenedor, propiedades) {
+  contenedor.querySelectorAll('.card-ver-mapa').forEach((boton) => {
+    boton.addEventListener('click', () => {
+      const propiedad = propiedades[Number(boton.dataset.indice)];
+      if (!propiedad || !tieneCoordenadas(propiedad)) return;
+      propiedadMapaSeleccionada = propiedad;
+      vistaActual = 'mapa';
+      toggleVistaEl.querySelectorAll('.toggle-vista-btn').forEach((b) => {
+        b.classList.toggle('is-activo', b.dataset.vista === 'mapa');
+      });
+      actualizarVista();
+      mapaWrapEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+}
