@@ -208,6 +208,8 @@ function slugify(texto) {
 
 const RESULTADOS_POR_PAGINA = 12;
 let propiedadesActuales = [];
+let propiedadesBase = []; // ultimo resultado ya filtrado por direccion, ANTES del filtro por portal -- se re-filtra sin volver a pedir al backend
+let portalesFiltro = new Set(); // portales elegidos para mostrar en exclusiva (click en los badges de abajo); vacio = todos
 let paginaActual = 1;
 let vistaActual = "lista";
 let propiedadMapaSeleccionada = null;
@@ -746,6 +748,7 @@ form.addEventListener("submit", async (ev) => {
     orden: formData.get("orden") || "relevancia",
   };
 
+  portalesFiltro.clear(); // busqueda nueva -- arranca sin filtro de portal
   estadoPortales.innerHTML = `<span class="estado-cargando"><span class="spinner"></span> Consultando portales...</span>`;
   renderSkeletons();
 
@@ -761,7 +764,7 @@ form.addEventListener("submit", async (ev) => {
   // marcada "Buen precio" con 3 portales puede no distinguirse tan
   // claro una vez que ZonaProp se suma a la comparacion, aceptado a
   // proposito por ser mas simple y mas rapido de ver.
-  const PORTALES_RAPIDOS = ["mercadolibre", "remax", "argenprop"];
+  const PORTALES_RAPIDOS = ["mercadolibre", "remax", "argenprop", "icasas"];
   const PORTALES_LENTOS = ["zonaprop"];
 
   async function buscarSubset(listaPortales) {
@@ -836,14 +839,16 @@ form.addEventListener("submit", async (ev) => {
       ...resultadoRapido.portales,
       { portal: "zonaprop", status: "cargando", cantidad: 0 },
     ]);
-    renderResultados(filtrarPorDireccion(propiedadesAcumuladas, direccionTexto));
+    propiedadesBase = filtrarPorDireccion(propiedadesAcumuladas, direccionTexto);
+    renderResultados(filtrarPorPortal(propiedadesBase));
 
     // ZonaProp se suma cuando termine, sin bloquear lo de arriba.
     try {
       const resultadoLento = await promesaLenta;
       propiedadesAcumuladas = propiedadesAcumuladas.concat(resultadoLento.propiedades);
       renderPortales([...resultadoRapido.portales, ...resultadoLento.portales]);
-      renderResultados(filtrarPorDireccion(propiedadesAcumuladas, direccionTexto));
+      propiedadesBase = filtrarPorDireccion(propiedadesAcumuladas, direccionTexto);
+      renderResultados(filtrarPorPortal(propiedadesBase));
     } catch (err) {
       renderPortales([
         ...resultadoRapido.portales,
@@ -871,13 +876,36 @@ function renderSkeletons(cantidad = 6) {
     .join("");
 }
 
+let ultimosPortales = []; // guardado para poder re-pintar los badges (clase activa) al togglear un filtro sin perder el resto del estado
+
 function renderPortales(portales) {
+  ultimosPortales = portales;
   estadoPortales.innerHTML = portales
     .map((p, i) => {
       const label = `${escapeHtml(p.portal)}: ${escapeHtml(p.status)}${p.status === "ok" ? ` (${p.cantidad})` : ""}`;
-      return `<span class="badge badge-${escapeHtml(p.status)}" style="--stagger-delay: ${i * 50}ms" title="${escapeHtml(p.detalle ?? "")}">${label}</span>`;
+      const activo = portalesFiltro.has(p.portal) ? " badge-filtro-activo" : "";
+      return `<button type="button" class="badge badge-${escapeHtml(p.status)}${activo}" data-portal="${escapeHtml(p.portal)}" style="--stagger-delay: ${i * 50}ms" title="${escapeHtml(p.detalle ?? "")}">${label}</button>`;
     })
     .join("");
+  [...estadoPortales.children].forEach((boton) => {
+    boton.addEventListener("click", () => togglePortalFiltro(boton.dataset.portal));
+  });
+}
+
+// Los badges de portal duplican de una el filtro: click para ver SOLO
+// ese portal (o varios, se van sumando), click de nuevo para sacarlo.
+// Sin filtro (set vacio) se ve todo, como antes. Filtra lo que ya se
+// trajo -- no pide de nuevo al backend.
+function togglePortalFiltro(portal) {
+  if (portalesFiltro.has(portal)) portalesFiltro.delete(portal);
+  else portalesFiltro.add(portal);
+  renderPortales(ultimosPortales);
+  renderResultados(filtrarPorPortal(propiedadesBase));
+}
+
+function filtrarPorPortal(propiedades) {
+  if (portalesFiltro.size === 0) return propiedades;
+  return propiedades.filter((p) => portalesFiltro.has(p.portal));
 }
 
 const NIVEL_LABEL = { bajo: "Baja", medio: "Media", alto: "Alta" };

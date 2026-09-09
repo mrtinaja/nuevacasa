@@ -503,21 +503,43 @@ input[type="number"]::-webkit-inner-spin-button {
   margin: 1.5rem 0 1.25rem;
 }
 
+/* Los badges de portal reparten todo el ancho de la fila (el mismo
+   ancho que el boton "Buscar propiedades" de arriba) en vez de quedar
+   apiñados a la izquierda -- min 140px para que en pantallas angostas
+   pasen a la fila siguiente en vez de aplastarse. */
+.portales-status .badge {
+  flex: 1 1 140px;
+  justify-content: center;
+}
+
 .badge {
   padding: 0.32rem 0.75rem;
   border-radius: 999px;
   font-size: 0.75rem;
   font-weight: 600;
+  font-family: inherit;
   border: 1px solid transparent;
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
   animation: badge-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
   animation-delay: var(--stagger-delay, 0ms);
-  transition: transform 0.15s ease;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 .badge:hover { transform: translateY(-1px); }
+
+/* Los badges de portal (estado-portales) son <button> clickeables --
+   filtran los resultados a ese portal en exclusiva -- el resto de los
+   badges (riesgo, homicidios, etc.) siguen siendo <span> y no matchean. */
+button.badge {
+  cursor: pointer;
+  background: rgba(148, 163, 184, 0.1);
+}
+
+button.badge.badge-filtro-activo {
+  box-shadow: 0 0 0 2px currentColor inset;
+}
 
 @keyframes badge-in {
   from { opacity: 0; transform: translateY(-6px) scale(0.9); }

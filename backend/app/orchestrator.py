@@ -10,6 +10,7 @@ from app.precio_justo import marcar_buen_precio
 from app.riesgo_sismico import info_sismico
 from app.scrapers.argenprop import ArgenpropScraper
 from app.scrapers.base import ScraperBloqueado, ScraperNoImplementado
+from app.scrapers.icasas import IcasasScraper
 from app.scrapers.mercadolibre import MercadoLibreScraper
 from app.scrapers.remax import RemaxScraper
 from app.scrapers.zonaprop import ZonapropScraper
@@ -22,6 +23,7 @@ SCRAPERS = {
         MercadoLibreScraper(),
         ZonapropScraper(),
         RemaxScraper(),
+        IcasasScraper(),
     ]
 }
 
