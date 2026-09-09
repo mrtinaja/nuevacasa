@@ -15,6 +15,19 @@ const SUGERIR_DIRECCION_URL = ES_LOCAL
   ? "http://localhost:8000/api/sugerir-direccion"
   : "https://nuevacasa.onrender.com/api/sugerir-direccion";
 
+// "Calienta" el backend apenas carga la pagina, en paralelo con
+// cualquier otra cosa que haga el usuario -- Render (plan gratis)
+// puede tardar hasta ~25s en responder si estuvo inactivo. Sin esto,
+// ese costo se pagaba recien en la PRIMERA letra que se escribia en
+// Direccion (o en el primer "Buscar propiedades"), haciendo que el
+// autocompletado se sintiera roto/lento la primera vez. /api/portales
+// es el endpoint mas liviano que hay (no scrapea nada) -- alcanza para
+// despertar el proceso. Fire-and-forget: si falla, no importa, el
+// pedido real de mas adelante igual reintenta.
+if (!ES_LOCAL) {
+  fetch("https://nuevacasa.onrender.com/api/portales").catch(() => {});
+}
+
 // Respaldo opcional: la IP de Render es de datacenter y ZonaProp/
 // MercadoLibre la bloquean seguido (confirmado: el mismo bloqueo pasa
 // en cualquier region de Render, no es cuestion de reputacion de una
