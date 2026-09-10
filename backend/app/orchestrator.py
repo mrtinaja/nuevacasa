@@ -34,9 +34,16 @@ SCRAPERS = {
 # bloqueo anti-bot que ya paso, pero evita gatillar uno nuevo por
 # pegarle al portal de mas cuando el usuario repite o casi repite una
 # busqueda (ej. toca "Buscar" de nuevo, cambia un filtro que ni se
-# aplica a este portal, etc.). Se pierde al reiniciar el backend --
-# no hace falta mas que eso para el uso actual (personal/local).
-_CACHE_TTL_SEGUNDOS = 10 * 60
+# aplica a este portal, etc.). Se pierde al reiniciar el backend.
+#
+# Subido de 10 a 30 min pensando en picos de trafico concurrente (ej.
+# un post en LinkedIn): varias visitas casi al mismo tiempo buscando
+# zonas populares (Capital Federal, Palermo, etc.) pegan todas contra
+# el mismo backend/IP de Render -- exactamente el patron que ya
+# confirmamos que dispara bloqueos con UN solo usuario de prueba.
+# Una ventana mas larga absorbe busquedas repetidas de zonas populares
+# entre visitantes distintos, no solo del mismo usuario reintentando.
+_CACHE_TTL_SEGUNDOS = 30 * 60
 _cache: dict[str, tuple[float, list[Propiedad], PortalResultado]] = {}
 
 
