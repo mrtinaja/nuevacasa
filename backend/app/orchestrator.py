@@ -41,6 +41,45 @@ SCRAPERS = {
 _MAX_PEDIDOS_CONCURRENTES_POR_PORTAL = 2
 _semaforos_portal = {nombre: threading.Semaphore(_MAX_PEDIDOS_CONCURRENTES_POR_PORTAL) for nombre in SCRAPERS}
 
+# Circuit breaker corto por portal: distinto del semaforo de arriba
+# (que limita CUANTOS pedidos van en simultaneo), esto decide si vale
+# la pena intentar pedir en absoluto. Si un portal nos bloqueo un par
+# de veces seguidas hace poco, lo mas probable es que siga en mal
+# momento -- insistirle en cada pedido nuevo (gastando los 2
+# reintentos con backoff de cada scraper) es mas lento para quien
+# busca y mas grosero con el portal que ya esta filtrando. Mientras el
+# circuito esta "abierto" se devuelve blocked al toque, sin tocar la
+# red, y se reintenta de nuevo pasado el cooldown (por si ya se le
+# paso el mal momento).
+_UMBRAL_BLOQUEOS_SEGUIDOS = 2      # bloqueos dentro de la ventana para abrir el circuito
+_VENTANA_BLOQUEOS_SEG = 60         # ventana en la que cuentan como "seguidos"
+_COOLDOWN_CIRCUITO_SEG = 45        # cuanto se deja de insistir una vez abierto
+
+_lock_circuito = threading.Lock()
+_bloqueos_recientes: dict[str, list[float]] = {}
+_circuito_abierto_hasta: dict[str, float] = {}
+
+
+def _circuito_abierto(nombre: str) -> bool:
+    with _lock_circuito:
+        return time.time() < _circuito_abierto_hasta.get(nombre, 0)
+
+
+def _registrar_bloqueo(nombre: str) -> None:
+    ahora = time.time()
+    with _lock_circuito:
+        eventos = [t for t in _bloqueos_recientes.get(nombre, []) if ahora - t < _VENTANA_BLOQUEOS_SEG]
+        eventos.append(ahora)
+        _bloqueos_recientes[nombre] = eventos
+        if len(eventos) >= _UMBRAL_BLOQUEOS_SEGUIDOS:
+            _circuito_abierto_hasta[nombre] = ahora + _COOLDOWN_CIRCUITO_SEG
+
+
+def _registrar_ok(nombre: str) -> None:
+    with _lock_circuito:
+        _bloqueos_recientes.pop(nombre, None)
+        _circuito_abierto_hasta.pop(nombre, None)
+
 
 # Cache muy simple en memoria: si dos busquedas piden lo mismo a un
 # portal dentro de la ventana de tiempo, la segunda no vuelve a
@@ -104,24 +143,37 @@ def _run_scraper(nombre: str, filtros: Filtros) -> tuple[list[Propiedad], Portal
         return future.result()
 
     try:
-        scraper = SCRAPERS[nombre]
-        try:
-            # El semaforo cubre la llamada COMPLETA a search() -- si el
-            # scraper hace fan-out interno por varios partidos (ej.
-            # ZonaProp/Argenprop/icasas con "toda la provincia"), el
-            # permiso se retiene por todo ese fan-out, no solo por un
-            # pedido HTTP suelto. Es exactamente lo que se quiere: ese
-            # fan-out YA es una rafaga en si mismo, no debería sumarse
-            # una segunda busqueda en paralelo encima.
-            with _semaforos_portal[nombre]:
-                propiedades = scraper.search(filtros)
-            resultado = PortalResultado(portal=nombre, status="ok", cantidad=len(propiedades))
-        except ScraperNoImplementado as exc:
-            propiedades, resultado = [], PortalResultado(portal=nombre, status="not_implemented", detalle=str(exc))
-        except ScraperBloqueado as exc:
-            propiedades, resultado = [], PortalResultado(portal=nombre, status="blocked", detalle=str(exc))
-        except Exception as exc:  # noqa: BLE001 - queremos capturar cualquier fallo de un portal sin tumbar el resto
-            propiedades, resultado = [], PortalResultado(portal=nombre, status="error", detalle=str(exc))
+        if _circuito_abierto(nombre):
+            propiedades, resultado = [], PortalResultado(
+                portal=nombre,
+                status="blocked",
+                detalle=(
+                    f"{nombre} bloqueo {_UMBRAL_BLOQUEOS_SEGUIDOS} veces seguidas hace poco -- "
+                    f"en pausa {_COOLDOWN_CIRCUITO_SEG}s antes de reintentar, sin gastar reintentos de mas."
+                ),
+            )
+        else:
+            scraper = SCRAPERS[nombre]
+            try:
+                # El semaforo cubre la llamada COMPLETA a search() -- si
+                # el scraper hace fan-out interno por varios partidos
+                # (ej. ZonaProp/Argenprop/icasas con "toda la
+                # provincia"), el permiso se retiene por todo ese
+                # fan-out, no solo por un pedido HTTP suelto. Es
+                # exactamente lo que se quiere: ese fan-out YA es una
+                # rafaga en si mismo, no debería sumarse una segunda
+                # busqueda en paralelo encima.
+                with _semaforos_portal[nombre]:
+                    propiedades = scraper.search(filtros)
+                resultado = PortalResultado(portal=nombre, status="ok", cantidad=len(propiedades))
+                _registrar_ok(nombre)
+            except ScraperNoImplementado as exc:
+                propiedades, resultado = [], PortalResultado(portal=nombre, status="not_implemented", detalle=str(exc))
+            except ScraperBloqueado as exc:
+                propiedades, resultado = [], PortalResultado(portal=nombre, status="blocked", detalle=str(exc))
+                _registrar_bloqueo(nombre)
+            except Exception as exc:  # noqa: BLE001 - queremos capturar cualquier fallo de un portal sin tumbar el resto
+                propiedades, resultado = [], PortalResultado(portal=nombre, status="error", detalle=str(exc))
 
         if resultado.status == "ok":
             _cache[clave] = (ahora, propiedades, resultado)
