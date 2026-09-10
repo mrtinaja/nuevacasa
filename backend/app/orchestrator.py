@@ -28,6 +28,19 @@ SCRAPERS = {
     ]
 }
 
+# Techo de pedidos EN VUELO por portal, compartido por todas las
+# busquedas del backend (no por busqueda individual). El coalescing de
+# mas abajo evita pedidos REPETIDOS en simultaneo, pero no dice nada
+# si 5 usuarios buscan 5 zonas DISTINTAS al mismo tiempo -- eso son 5
+# pedidos reales en paralelo contra el mismo portal, la misma rafaga
+# que ya confirmamos que dispara bloqueos (22 pedidos seguidos a
+# ZonaProp = bloqueo). Con el semaforo, el pedido 3ro en adelante
+# espera su turno en cola en vez de sumarse a la rafaga -- mitigacion
+# legitima (pedir de a poco), no evasion; sigue pudiendo bloquear
+# igual si el bloqueo es por reputacion de IP y no por volumen.
+_MAX_PEDIDOS_CONCURRENTES_POR_PORTAL = 2
+_semaforos_portal = {nombre: threading.Semaphore(_MAX_PEDIDOS_CONCURRENTES_POR_PORTAL) for nombre in SCRAPERS}
+
 
 # Cache muy simple en memoria: si dos busquedas piden lo mismo a un
 # portal dentro de la ventana de tiempo, la segunda no vuelve a
@@ -93,7 +106,15 @@ def _run_scraper(nombre: str, filtros: Filtros) -> tuple[list[Propiedad], Portal
     try:
         scraper = SCRAPERS[nombre]
         try:
-            propiedades = scraper.search(filtros)
+            # El semaforo cubre la llamada COMPLETA a search() -- si el
+            # scraper hace fan-out interno por varios partidos (ej.
+            # ZonaProp/Argenprop/icasas con "toda la provincia"), el
+            # permiso se retiene por todo ese fan-out, no solo por un
+            # pedido HTTP suelto. Es exactamente lo que se quiere: ese
+            # fan-out YA es una rafaga en si mismo, no debería sumarse
+            # una segunda busqueda en paralelo encima.
+            with _semaforos_portal[nombre]:
+                propiedades = scraper.search(filtros)
             resultado = PortalResultado(portal=nombre, status="ok", cantidad=len(propiedades))
         except ScraperNoImplementado as exc:
             propiedades, resultado = [], PortalResultado(portal=nombre, status="not_implemented", detalle=str(exc))
