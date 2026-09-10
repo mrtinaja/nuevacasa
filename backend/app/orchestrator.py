@@ -1,6 +1,7 @@
 import json
+import threading
 import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 
 from app.delitos import info_delitos
 from app.historial import registrar_y_enriquecer
@@ -46,6 +47,26 @@ SCRAPERS = {
 _CACHE_TTL_SEGUNDOS = 30 * 60
 _cache: dict[str, tuple[float, list[Propiedad], PortalResultado]] = {}
 
+# Coalescing de pedidos ("single-flight"): si dos usuarios buscan lo
+# mismo casi al mismo tiempo (ej. varios entrando desde un link
+# compartido y buscando "Palermo" en la misma ventana de un par de
+# segundos), el cache de arriba NO alcanza a evitar el segundo scrapeo
+# real -- el primero todavia no termino, asi que todavia no hay nada
+# en _cache para reusar. Sin esto, una rafaga de N pedidos identicos
+# simultaneos dispara N scrapeos reales contra el mismo portal en vez
+# de 1, justo el patron que confirmamos que gatilla bloqueos.
+#
+# _en_progreso guarda, por clave, el Future del pedido que ya esta en
+# vuelo -- el primer thread que llega para una clave se vuelve "lider"
+# (crea el Future y de verdad scrapea), cualquier otro que llegue
+# mientras tanto para la MISMA clave se vuelve "espectador" y solo
+# espera el resultado del lider (future.result() bloquea el thread,
+# no ocupa CPU). _lock_en_progreso protege el dict en si -- la seccion
+# critica es solo "leer o crear la entrada", microscopica, no el
+# scrapeo entero.
+_lock_en_progreso = threading.Lock()
+_en_progreso: dict[str, "Future[tuple[list[Propiedad], PortalResultado]]"] = {}
+
 
 def _clave_cache(nombre: str, filtros: Filtros) -> str:
     datos = filtros.model_dump(mode="json")
@@ -60,20 +81,37 @@ def _run_scraper(nombre: str, filtros: Filtros) -> tuple[list[Propiedad], Portal
     if en_cache is not None and ahora - en_cache[0] < _CACHE_TTL_SEGUNDOS:
         return en_cache[1], en_cache[2]
 
-    scraper = SCRAPERS[nombre]
-    try:
-        propiedades = scraper.search(filtros)
-        resultado = PortalResultado(portal=nombre, status="ok", cantidad=len(propiedades))
-    except ScraperNoImplementado as exc:
-        propiedades, resultado = [], PortalResultado(portal=nombre, status="not_implemented", detalle=str(exc))
-    except ScraperBloqueado as exc:
-        propiedades, resultado = [], PortalResultado(portal=nombre, status="blocked", detalle=str(exc))
-    except Exception as exc:  # noqa: BLE001 - queremos capturar cualquier fallo de un portal sin tumbar el resto
-        propiedades, resultado = [], PortalResultado(portal=nombre, status="error", detalle=str(exc))
+    with _lock_en_progreso:
+        future = _en_progreso.get(clave)
+        soy_lider = future is None
+        if soy_lider:
+            future = _en_progreso[clave] = Future()
 
-    if resultado.status == "ok":
-        _cache[clave] = (ahora, propiedades, resultado)
-    return propiedades, resultado
+    if not soy_lider:
+        return future.result()
+
+    try:
+        scraper = SCRAPERS[nombre]
+        try:
+            propiedades = scraper.search(filtros)
+            resultado = PortalResultado(portal=nombre, status="ok", cantidad=len(propiedades))
+        except ScraperNoImplementado as exc:
+            propiedades, resultado = [], PortalResultado(portal=nombre, status="not_implemented", detalle=str(exc))
+        except ScraperBloqueado as exc:
+            propiedades, resultado = [], PortalResultado(portal=nombre, status="blocked", detalle=str(exc))
+        except Exception as exc:  # noqa: BLE001 - queremos capturar cualquier fallo de un portal sin tumbar el resto
+            propiedades, resultado = [], PortalResultado(portal=nombre, status="error", detalle=str(exc))
+
+        if resultado.status == "ok":
+            _cache[clave] = (ahora, propiedades, resultado)
+        future.set_result((propiedades, resultado))
+        return propiedades, resultado
+    except BaseException as exc:  # noqa: BLE001 - un espectador esperando no debe quedar colgado si el lider explota
+        future.set_exception(exc)
+        raise
+    finally:
+        with _lock_en_progreso:
+            _en_progreso.pop(clave, None)
 
 
 def buscar(filtros: Filtros) -> SearchResponse:

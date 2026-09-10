@@ -68,14 +68,33 @@ def registrar_y_enriquecer(propiedades: list[Propiedad]) -> None:
             ).fetchone()
 
             if fila is None:
-                conn.execute(
-                    "INSERT INTO avisos_historial "
+                # INSERT OR IGNORE (no INSERT a secas): con el coalescing
+                # de pedidos del orchestrator, dos busquedas concurrentes
+                # por la misma zona comparten el mismo resultado y pueden
+                # llegar a registrar el MISMO aviso al mismo tiempo desde
+                # threads distintos -- sin el OR IGNORE, el segundo
+                # explotaba con UNIQUE constraint failed (confirmado en
+                # vivo con 5 busquedas simultaneas). Si rowcount da 0
+                # perdimos la carrera -- releer como si el aviso ya
+                # hubiera existido desde el principio (que es la realidad,
+                # el otro thread lo inserto un instante antes).
+                cursor = conn.execute(
+                    "INSERT OR IGNORE INTO avisos_historial "
                     "(portal, external_id, precio, moneda, primera_vez, ultima_vez, precio_anterior, fecha_cambio_precio) "
                     "VALUES (?, ?, ?, ?, ?, ?, NULL, NULL)",
                     (p.portal, p.external_id, p.precio, p.moneda, ahora, ahora),
                 )
-                p.dias_en_mercado = 0
-                continue
+                if cursor.rowcount > 0:
+                    p.dias_en_mercado = 0
+                    continue
+                fila = conn.execute(
+                    "SELECT precio, primera_vez, precio_anterior, fecha_cambio_precio "
+                    "FROM avisos_historial WHERE portal = ? AND external_id = ?",
+                    (p.portal, p.external_id),
+                ).fetchone()
+                if fila is None:
+                    p.dias_en_mercado = 0
+                    continue
 
             precio_guardado, primera_vez, precio_anterior_guardado, fecha_cambio_guardada = fila
             p.dias_en_mercado = _dias_desde(primera_vez)
